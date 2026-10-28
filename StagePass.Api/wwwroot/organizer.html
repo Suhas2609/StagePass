@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StagePass — Organizer Portal</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">Stage<span>Pass</span></a>
+      <nav class="site-nav">
+        <a href="index.html">All Events</a>
+        <a href="demo.html">🔬 Live Demo</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <div class="organizer-header">
+      <h1>Organizer Portal</h1>
+      <p>Manage events, monitor bookings, and track inventory.</p>
+    </div>
+    <div id="error-display" class="alert alert-error" role="alert"></div>
+    <div id="organizer-status" class="alert alert-success" role="alert"></div>
+
+    <!-- Connection panel -->
+    <section id="api-key-section" class="form-panel" style="max-width:460px;">
+      <h2>Connect with API Key</h2>
+      <div class="form-group">
+        <label for="api-key-input">API Key</label>
+        <input type="password" id="api-key-input" placeholder="Enter X-Api-Key…" autocomplete="off">
+      </div>
+      <button id="connect-btn" class="btn btn-primary btn-full">Connect to Dashboard</button>
+    </section>
+
+    <!-- Dashboard (hidden until connected) -->
+    <div id="organizer-dashboard" hidden>
+      <!-- Quick stat cards -->
+      <div id="stats-row" class="stats-row">
+        <!-- Populated by JS when bookings are loaded -->
+      </div>
+
+      <!-- Creation forms in two-column layout -->
+      <div class="dashboard-sections">
+        <div class="section-card">
+          <h2>Create Event</h2>
+          <form id="create-event-form" novalidate>
+            <div class="form-group">
+              <label for="event-title">Title</label>
+              <input type="text" id="event-title" required placeholder="Event name">
+            </div>
+            <div class="form-group">
+              <label for="event-category">Category</label>
+              <input type="text" id="event-category" required placeholder="Music, Theatre, Comedy…">
+            </div>
+            <div class="form-group">
+              <label for="event-description">Description</label>
+              <input type="text" id="event-description" placeholder="Optional">
+            </div>
+            <div class="form-group">
+              <label for="event-venue-id">Venue ID</label>
+              <input type="number" id="event-venue-id" value="1" min="1">
+            </div>
+            <div class="form-group">
+              <label for="event-organizer-id">Organizer ID</label>
+              <input type="number" id="event-organizer-id" value="1" min="1">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Create Event</button>
+          </form>
+          <div id="event-result" style="margin-top:var(--space-md); font-size:0.85rem; color:var(--status-upcoming-text);"></div>
+        </div>
+
+        <div class="section-card">
+          <h2>Create Performance</h2>
+          <form id="create-performance-form" novalidate>
+            <div class="form-group">
+              <label for="perf-event-id">Event ID</label>
+              <input type="number" id="perf-event-id" min="1">
+            </div>
+            <div class="form-group">
+              <label for="perf-start">Start Date & Time</label>
+              <input type="datetime-local" id="perf-start" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Create Performance</button>
+          </form>
+          <div id="perf-result" style="margin-top:var(--space-md); font-size:0.85rem; color:var(--status-upcoming-text);"></div>
+
+          <h2 style="margin-top:var(--space-xl);">Add Ticket Type</h2>
+          <form id="create-tickettype-form" novalidate>
+            <div class="form-group">
+              <label for="tt-perf-id">Performance ID</label>
+              <input type="number" id="tt-perf-id" min="1">
+            </div>
+            <div class="form-group">
+              <label for="tt-name">Name</label>
+              <input type="text" id="tt-name" placeholder="Standard, Premium…">
+            </div>
+            <div class="form-group">
+              <label for="tt-price">Price (£)</label>
+              <input type="number" id="tt-price" min="0" step="0.01" placeholder="25.00">
+            </div>
+            <div class="form-group">
+              <label for="tt-capacity">Capacity</label>
+              <input type="number" id="tt-capacity" min="1" placeholder="100">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Add Ticket Type</button>
+          </form>
+          <div id="tt-result" style="margin-top:var(--space-md); font-size:0.85rem; color:var(--status-upcoming-text);"></div>
+        </div>
+      </div>
+
+      <!-- View bookings -->
+      <div class="section-card" style="margin-bottom:var(--space-xl);">
+        <h2>View Performance Bookings</h2>
+        <div style="display:flex; gap:var(--space-md); flex-wrap:wrap;">
+          <div class="form-group" style="flex:1; min-width:160px;">
+            <label for="bookings-performance-id">Performance ID</label>
+            <input type="number" id="bookings-performance-id" min="1">
+          </div>
+          <div class="form-group" style="flex:0; min-width:auto;">
+            <label style="visibility:hidden">.</label>
+            <button id="view-bookings-btn" class="btn btn-primary">View Bookings</button>
+          </div>
+          <div class="form-group" style="flex:0; min-width:auto;">
+            <label style="visibility:hidden">.</label>
+            <button id="cancel-perf-btn" class="btn btn-secondary">Cancel Performance</button>
+          </div>
+        </div>
+        <div id="inventory-summary" style="margin-top:var(--space-lg);"></div>
+        <div id="bookings-table" style="margin-top:var(--space-lg);"></div>
+      </div>
+    </div>
+  </main>
+  <script src="js/toast.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/organizer.js"></script>
+</body>
+</html>

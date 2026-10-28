@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StagePass — Discover Live Performances</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">Stage<span>Pass</span></a>
+      <nav class="site-nav">
+        <a href="demo.html">🔬 Live Demo</a>
+        <a href="organizer.html">Organizer Portal</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-hero">
+      <h1>Upcoming Performances</h1>
+      <p>Discover and book tickets to live theatre, music, comedy, and more.</p>
+    </section>
+
+    <!-- FILTERS -->
+    <section class="filters" aria-label="Search and filter performances">
+      <div class="filter-group">
+        <label for="search">Search</label>
+        <input type="text" id="search" placeholder="Search events, venues…" autocomplete="off">
+      </div>
+      <div class="filter-group">
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="date">Date</label>
+        <input type="date" id="date">
+      </div>
+      <div class="filter-group" style="flex: 0; min-width: auto;">
+        <label style="visibility:hidden">Search</label>
+        <button id="search-btn" class="btn btn-primary">Search</button>
+      </div>
+    </section>
+
+    <!-- ALERTS -->
+    <div id="error-display" class="alert alert-error" role="alert"></div>
+
+    <!-- GRID -->
+    <section id="events-grid" class="events-grid" aria-live="polite" aria-label="Performance listings">
+      <!-- Cards injected by events.js -->
+    </section>
+
+    <!-- EMPTY STATE -->
+    <div id="empty-state" hidden style="text-align:center; padding: 60px 0;">
+      <p style="font-size:3rem; margin-bottom:16px;">🎭</p>
+      <p style="color:var(--text-secondary);">No performances found for your search. Try adjusting the filters.</p>
+    </div>
+
+    <!-- PAGINATION -->
+    <section class="pagination" aria-label="Pagination">
+      <button id="prev-btn" class="btn btn-secondary" disabled>← Previous</button>
+      <span id="page-label" class="page-label">Page 1</span>
+      <button id="next-btn" class="btn btn-secondary">Next →</button>
+    </section>
+  </main>
+
+  <script src="js/toast.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/events.js"></script>
+</body>
+</html>

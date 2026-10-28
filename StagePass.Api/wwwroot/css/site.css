@@ -1,0 +1,650 @@
+/* ==========================================================================
+   STAGEPASS DESIGN SYSTEM (css/site.css)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   SECTION 1 — CSS CUSTOM PROPERTIES
+   -------------------------------------------------------------------------- */
+:root {
+  /* Brand */
+  --brand: #7c3aed;
+  --brand-hover: #6d28d9;
+  --brand-glow: rgba(124, 58, 237, 0.35);
+
+  /* Background layers */
+  --bg-base: #0b0d14;
+  --bg-surface: #13161f;
+  --bg-elevated: #1b1f2e;
+  --bg-input: #1e2235;
+
+  /* Text */
+  --text-primary: #f0f4ff;
+  --text-secondary: #8892a8;
+  --text-muted: #4a5272;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-focus: rgba(124, 58, 237, 0.6);
+
+  /* Status */
+  --status-upcoming-text: #34d399;
+  --status-upcoming-bg: rgba(52, 211, 153, 0.12);
+  --status-cancelled-text: #f87171;
+  --status-cancelled-bg: rgba(248, 113, 113, 0.12);
+  --status-soldout-text: #6b7280;
+  --status-soldout-bg: rgba(107, 114, 128, 0.12);
+
+  /* Category color strips */
+  --cat-music:   #3b82f6;
+  --cat-theatre: #8b5cf6;
+  --cat-comedy:  #f59e0b;
+  --cat-dance:   #ec4899;
+  --cat-default: #6366f1;
+
+  /* Semantic alerts */
+  --alert-error-bg:    rgba(239, 68, 68, 0.1);
+  --alert-error-text:  #fca5a5;
+  --alert-error-border:#ef4444;
+  --alert-success-bg:   rgba(52, 211, 153, 0.1);
+  --alert-success-text: #6ee7b7;
+  --alert-success-border:#34d399;
+
+  /* Shadows */
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 58, 237, 0.2);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Spacing rhythm */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+}
+
+/* --------------------------------------------------------------------------
+   SECTION 2 — RESET AND BASE
+   -------------------------------------------------------------------------- */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+::selection { background: var(--brand); color: #fff; }
+[hidden] { display: none !important; }
+
+/* --------------------------------------------------------------------------
+   SECTION 3 — LAYOUT
+   -------------------------------------------------------------------------- */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-lg); }
+
+/* --------------------------------------------------------------------------
+   SECTION 4 — HEADER / NAV
+   -------------------------------------------------------------------------- */
+.site-header {
+  background: rgba(11, 13, 20, 0.85);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: var(--space-md) 0;
+}
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brand {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--brand);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.brand span { color: var(--text-primary); }
+.site-nav { display: flex; gap: var(--space-lg); }
+.site-nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+.site-nav a:hover { color: var(--text-primary); }
+
+/* --------------------------------------------------------------------------
+   SECTION 5 — HERO STRIP
+   -------------------------------------------------------------------------- */
+.page-hero {
+  padding: var(--space-xl) 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-xl);
+}
+.page-hero h1 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+}
+.page-hero p { color: var(--text-secondary); font-size: 1rem; max-width: 520px; }
+
+/* --------------------------------------------------------------------------
+   SECTION 6 — FILTER BAR
+   -------------------------------------------------------------------------- */
+.filters {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+.filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; }
+.filter-group label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.filter-group input,
+.filter-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  outline: none;
+  width: 100%;
+}
+.filter-group input:focus,
+.filter-group select:focus { border-color: var(--border-focus); }
+.filter-group select option { background: var(--bg-elevated); }
+.filter-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+
+/* --------------------------------------------------------------------------
+   SECTION 7 — BUTTONS
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+}
+.btn-primary:hover {
+  background: var(--brand-hover);
+  box-shadow: 0 0 16px var(--brand-glow);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--bg-input); color: var(--text-primary); border-color: var(--border-focus); }
+.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-lg { padding: 14px 32px; font-size: 1rem; border-radius: var(--radius-md); }
+.btn-full { width: 100%; justify-content: center; }
+
+/* --------------------------------------------------------------------------
+   SECTION 8 — EVENT CARDS GRID
+   -------------------------------------------------------------------------- */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+  transition: opacity 0.2s;
+}
+.events-grid.loading { opacity: 0.45; pointer-events: none; }
+
+/* Category color strips via data attribute */
+.event-card { --cat-color: var(--cat-default); }
+.event-card[data-category="music"]   { --cat-color: var(--cat-music); }
+.event-card[data-category="theatre"] { --cat-color: var(--cat-theatre); }
+.event-card[data-category="comedy"]  { --cat-color: var(--cat-comedy); }
+.event-card[data-category="dance"]   { --cat-color: var(--cat-dance); }
+
+.event-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--cat-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+}
+.event-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-4px);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-sm); }
+.card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.3; }
+.card-meta { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.7; }
+.card-meta span { display: block; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: var(--space-md); border-top: 1px solid var(--border); }
+.card-price { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.card-price small { font-size: 0.75rem; font-weight: 400; color: var(--text-secondary); }
+
+/* --------------------------------------------------------------------------
+   SECTION 9 — STATUS BADGES
+   -------------------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.badge::before { content: '●'; font-size: 0.5rem; }
+.badge-upcoming  { background: var(--status-upcoming-bg);  color: var(--status-upcoming-text); }
+.badge-cancelled { background: var(--status-cancelled-bg); color: var(--status-cancelled-text); }
+.badge-sold-out  { background: var(--status-soldout-bg);   color: var(--status-soldout-text); }
+
+/* --------------------------------------------------------------------------
+   SECTION 10 — PAGINATION
+   -------------------------------------------------------------------------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) 0;
+}
+.page-label { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; min-width: 60px; text-align: center; }
+
+/* --------------------------------------------------------------------------
+   SECTION 11 — ALERTS
+   -------------------------------------------------------------------------- */
+.alert {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  border-left: 3px solid;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: var(--space-lg);
+}
+.alert:empty { display: none; }
+.alert-error   { background: var(--alert-error-bg);   color: var(--alert-error-text);   border-color: var(--alert-error-border); }
+.alert-success { background: var(--alert-success-bg); color: var(--alert-success-text); border-color: var(--alert-success-border); }
+
+/* --------------------------------------------------------------------------
+   SECTION 12 — PERFORMANCE DETAIL PAGE
+   -------------------------------------------------------------------------- */
+.performance-hero {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  position: relative;
+  overflow: hidden;
+}
+.performance-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand), #3b82f6);
+}
+.performance-hero h1 { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: var(--space-md); }
+.performance-hero .badge { margin-bottom: var(--space-md); }
+.performance-hero .description { color: var(--text-secondary); margin-bottom: var(--space-md); }
+.performance-hero .meta-grid { display: grid; grid-template-columns: auto auto; gap: var(--space-sm) var(--space-xl); }
+.meta-item { display: flex; align-items: center; gap: var(--space-sm); font-size: 0.9rem; color: var(--text-secondary); }
+.meta-item strong { color: var(--text-primary); }
+
+/* --------------------------------------------------------------------------
+   SECTION 13 — TICKET TIER CARDS
+   -------------------------------------------------------------------------- */
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+.ticket-card {
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.ticket-card:hover { border-color: var(--brand); background: var(--bg-elevated); }
+.ticket-card.selected { border-color: var(--brand); background: rgba(124, 58, 237, 0.08); box-shadow: 0 0 0 4px var(--brand-glow); }
+.ticket-card input[type="radio"] { position: absolute; top: var(--space-md); right: var(--space-md); width: 18px; height: 18px; accent-color: var(--brand); }
+.ticket-card .tier-name { font-weight: 700; font-size: 1.05rem; margin-bottom: var(--space-sm); }
+.ticket-card .tier-price { font-size: 1.4rem; font-weight: 800; color: var(--brand); margin-bottom: 4px; }
+.ticket-card .tier-avail { font-size: 0.8rem; color: var(--text-secondary); }
+.ticket-card .tier-avail.low { color: #f59e0b; }
+.ticket-card .tier-avail.sold { color: var(--status-cancelled-text); }
+
+/* --------------------------------------------------------------------------
+   SECTION 14 — RESERVATION FORM PANEL
+   -------------------------------------------------------------------------- */
+.form-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+.form-panel h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border); }
+.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-lg); }
+.form-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.form-group input,
+.form-group select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus { border-color: var(--border-focus); }
+.form-group input.input-error,
+.form-group select.input-error { border-color: var(--alert-error-border); }
+.field-error { font-size: 0.8rem; color: var(--alert-error-text); }
+
+/* --------------------------------------------------------------------------
+   SECTION 15 — HOLD STATUS BOX
+   -------------------------------------------------------------------------- */
+.hold-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--status-upcoming-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  margin: var(--space-xl) 0;
+}
+.hold-box h2 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: var(--space-sm); }
+.hold-box p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: var(--space-lg); }
+.countdown {
+  font-size: 3rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+}
+.countdown.urgent { color: #f59e0b; }
+.countdown.critical { color: var(--alert-error-text); }
+.hold-actions { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+
+/* --------------------------------------------------------------------------
+   SECTION 16 — BOOKING CONFIRMATION PAGE
+   -------------------------------------------------------------------------- */
+.booking-success {
+  text-align: center;
+  padding: var(--space-xl) 0;
+}
+.booking-success .check-icon {
+  width: 72px; height: 72px;
+  background: var(--alert-success-bg);
+  border: 2px solid var(--alert-success-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-lg);
+  font-size: 2rem;
+}
+.booking-success h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: var(--space-sm); }
+.booking-success .subtitle { color: var(--text-secondary); margin-bottom: var(--space-xl); }
+.ref-box {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-xl);
+  margin: 0 auto var(--space-xl);
+  max-width: 420px;
+  cursor: pointer;
+  user-select: all;
+  transition: border-color 0.15s;
+}
+.ref-box:hover { border-color: var(--brand); }
+.ref-box .ref-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: var(--space-sm); font-weight: 600; }
+.ref-box .ref-code { font-family: 'Courier New', monospace; font-size: 1.8rem; font-weight: 800; color: var(--brand); letter-spacing: 0.05em; }
+.booking-detail-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-xl);
+  max-width: 520px;
+  margin: 0 auto var(--space-xl);
+  text-align: left;
+}
+.detail-row { display: flex; justify-content: space-between; padding: var(--space-md) 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+.detail-row:last-child { border-bottom: none; }
+.detail-row .label { color: var(--text-secondary); }
+.detail-row .value { font-weight: 600; color: var(--text-primary); text-align: right; }
+
+/* --------------------------------------------------------------------------
+   SECTION 17 — ORGANIZER DASHBOARD
+   -------------------------------------------------------------------------- */
+.organizer-header { padding: var(--space-xl) 0 var(--space-lg); border-bottom: 1px solid var(--border); margin-bottom: var(--space-xl); }
+.organizer-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+.organizer-header p { color: var(--text-secondary); font-size: 0.9rem; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-md); margin-bottom: var(--space-xl); }
+.stat-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-lg); }
+.stat-card .stat-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: var(--space-sm); }
+.stat-card .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; }
+.stat-card .stat-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+.dashboard-sections { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); margin-bottom: var(--space-xl); }
+.section-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-xl); }
+.section-card h2 { font-size: 1rem; font-weight: 700; margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px solid var(--border); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.data-table th { text-align: left; padding: var(--space-sm) var(--space-md); color: var(--text-secondary); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.data-table td { padding: var(--space-md); border-bottom: 1px solid var(--border); color: var(--text-primary); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg-elevated); }
+.inv-bar { width: 100%; height: 6px; background: var(--bg-elevated); border-radius: 3px; margin-top: 6px; }
+.inv-bar-fill { height: 6px; background: var(--brand); border-radius: 3px; transition: width 0.5s ease; }
+.inv-bar-fill.low  { background: #f59e0b; }
+.inv-bar-fill.zero { background: var(--alert-error-border); }
+
+/* Ticket Tier Availability & Sold-Out */
+.ticket-card.sold-out {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+.ticket-card.sold-out:hover {
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+/* --------------------------------------------------------------------------
+   STEP INDICATOR, COUNTDOWN RING, TOASTS
+   -------------------------------------------------------------------------- */
+/* Booking Step Indicator */
+.step-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: var(--space-xl);
+  counter-reset: step;
+}
+.step-bar .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  position: relative;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.step-bar .step::before {
+  counter-increment: step;
+  content: counter(step);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+.step-bar .step.active { color: var(--text-primary); }
+.step-bar .step.active::before { background: var(--brand); border-color: var(--brand); color: #fff; }
+.step-bar .step.done::before { content: '✓'; background: var(--status-upcoming-text); border-color: var(--status-upcoming-text); color: #fff; }
+.step-bar .step::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 14px);
+  right: calc(-50% + 14px);
+  height: 2px;
+  background: var(--border);
+}
+.step-bar .step:last-child::after { display: none; }
+.step-bar .step.done::after { background: var(--status-upcoming-text); }
+
+/* Improved Countdown Ring */
+.countdown-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: var(--space-lg) 0;
+  gap: var(--space-sm);
+}
+.countdown-ring-wrap { position: relative; width: 120px; height: 120px; }
+.countdown-ring-wrap svg { transform: rotate(-90deg); }
+.countdown-ring-bg { fill: none; stroke: var(--bg-elevated); stroke-width: 8; }
+.countdown-ring-fill { fill: none; stroke: var(--brand); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 339.3; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+.countdown-ring-fill.urgent { stroke: #f59e0b; }
+.countdown-ring-fill.critical { stroke: var(--alert-error-border); }
+.countdown-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.countdown-label.urgent { color: #f59e0b; }
+.countdown-label.critical { color: var(--alert-error-text); }
+.countdown-caption { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* Toast Notification System */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--brand);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  max-width: 340px;
+  pointer-events: all;
+  box-shadow: var(--shadow-card);
+  animation: slideIn 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toast.success { border-left-color: var(--status-upcoming-text); }
+.toast.error   { border-left-color: var(--alert-error-border); }
+.toast.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; transform: translateX(20px); } }
+
+/* --------------------------------------------------------------------------
+   SECTION 18 — RESPONSIVE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .dashboard-sections { grid-template-columns: 1fr; }
+  .meta-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .events-grid { grid-template-columns: 1fr; }
+  .ticket-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .filters { flex-direction: column; }
+  .filter-group { min-width: 100%; }
+  .hold-actions { flex-direction: column; }
+  .countdown { font-size: 2rem; }
+  .ref-code { font-size: 1.3rem; }
+  .performance-hero { padding: var(--space-lg); }
+  .container { padding: 0 var(--space-md); }
+
+  /* Mobile Polish additions */
+  .step-bar .step { font-size: 0; }  /* Hide labels, show numbers only */
+  .countdown-ring-wrap { width: 90px; height: 90px; }
+  .countdown-label { font-size: 1.1rem; }
+  .btn-full { width: 100%; }
+  .dashboard-sections { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------------------
+   SECTION 19 — ANIMATIONS AND TRANSITIONS
+   -------------------------------------------------------------------------- */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }

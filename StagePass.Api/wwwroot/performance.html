@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StagePass — Performance Details</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">Stage<span>Pass</span></a>
+      <nav class="site-nav">
+        <a href="index.html">All Events</a>
+        <a href="demo.html">🔬 Live Demo</a>
+        <a href="organizer.html">Organizer</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container" style="padding-top: var(--space-xl);">
+    <nav class="step-bar" aria-label="Booking progress">
+      <div class="step active" id="step-1">Browse</div>
+      <div class="step" id="step-2">Reserve</div>
+      <div class="step" id="step-3">Confirm</div>
+    </nav>
+    <div id="error-display" class="alert alert-error" role="alert"></div>
+    <div id="performance-detail"></div>
+    <div id="ticket-types" class="ticket-grid"></div>
+    <form id="reservation-form" class="form-panel" novalidate hidden>
+      <h2>Reserve Tickets</h2>
+      <div class="form-group">
+        <label for="ticket-type-select">Ticket Type</label>
+        <select id="ticket-type-select"></select>
+      </div>
+      <div class="form-group">
+        <label for="quantity-input">Quantity (1–10)</label>
+        <input type="number" id="quantity-input" min="1" max="10" value="1">
+        <span id="qty-error" class="field-error"></span>
+      </div>
+      <div class="form-group">
+        <label for="customer-email">Customer Email</label>
+        <input type="email" id="customer-email" placeholder="you@example.com" autocomplete="email">
+        <span id="email-error" class="field-error"></span>
+      </div>
+      <button type="submit" id="reserve-btn" class="btn btn-primary btn-lg btn-full">Reserve Tickets</button>
+    </form>
+    <section id="hold-status" class="hold-box" hidden>
+      <h2 id="hold-until-heading">Hold expires at —</h2>
+      <p id="hold-summary"></p>
+      <div class="countdown-wrapper">
+        <div class="countdown-ring-wrap">
+          <svg viewBox="0 0 120 120" width="120" height="120">
+            <circle class="countdown-ring-bg" cx="60" cy="60" r="54"/>
+            <circle class="countdown-ring-fill" id="ring-fill" cx="60" cy="60" r="54"/>
+          </svg>
+          <div class="countdown-label" id="countdown-label">05:00</div>
+        </div>
+        <p class="countdown-caption">Minutes remaining to confirm</p>
+      </div>
+      <div class="hold-actions">
+        <button id="confirm-booking-btn" class="btn btn-primary btn-lg">✓ Confirm Booking</button>
+        <button id="retry-hold-btn" class="btn btn-secondary">↻ Verify Hold</button>
+      </div>
+    </section>
+  </main>
+  <script src="js/toast.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/performance.js"></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+@baseUrl = https://localhost:7135
+@apiKey = REPLACE_FOR_DEMO
+
+### 1. List upcoming performances (paged; optional ?category=Music&date=2026-12-31)
+GET {{baseUrl}}/api/performances?page=1&pageSize=5
+Accept: application/json
+
+###
+
+### 2. Performance details (404 if missing or not Upcoming)
+GET {{baseUrl}}/api/performances/1
+Accept: application/json
+
+###
+
+### 3. Create a reservation hold (201 new, 200 idempotent retry, 409 on conflict). Rate limited: 10/min per IP.
+# Use a NEW GUID for each new hold; re-sending the same key + body returns the same hold with 200.
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "ticketTypeId": 1,
+  "quantity": 2,
+  "idempotencyKey": "3f2b8c1e-7a4d-4e9b-9c55-0d1f6a2b7e10",
+  "customerIdentifier": "demo@example.com"
+}
+
+###
+
+### 4. Reservation status (use the holdId returned by step 3)
+GET {{baseUrl}}/api/reservations/1
+Accept: application/json
+
+###
+
+### 5. Confirm a reservation (200 { bookingReference }; 404 / 409 otherwise)
+POST {{baseUrl}}/api/reservations/1/confirm
+Content-Type: application/json
+
+{
+  "customerIdentifier": "demo@example.com"
+}
+
+###
+
+### 6. Booking details (use the bookingReference returned by step 5)
+GET {{baseUrl}}/api/bookings/SP-XXXXXXXX
+Accept: application/json
+
+###
+
+### 7. Organizer: create an event (requires X-Api-Key; 401 without it)
+POST {{baseUrl}}/api/organizer/events
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "title": "Demo Event",
+  "category": "Music",
+  "description": "Created from the .http file",
+  "venueId": 1,
+  "organizerId": 1
+}
+
+###
+
+### 8. Organizer: create a performance for an event (start must be in the future)
+POST {{baseUrl}}/api/organizer/performances
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "eventId": 1,
+  "startDateTime": "2030-01-01T19:00:00Z"
+}
+
+###
+
+### 9. Organizer: add a ticket type to a performance (Available is set to Capacity by the server)
+POST {{baseUrl}}/api/organizer/performances/1/tickettypes
+Content-Type: application/json
+X-Api-Key: {{apiKey}}
+
+{
+  "name": "Balcony",
+  "price": 40.00,
+  "capacity": 60
+}
+
+###
+
+### 10. Organizer: confirmed bookings and per-ticket-type summary
+GET {{baseUrl}}/api/organizer/performances/1/bookings
+X-Api-Key: {{apiKey}}
+
+###
+
+### 11. Organizer: cancel a performance (200; 409 if it is already not Upcoming)
+PATCH {{baseUrl}}/api/organizer/performances/1/cancel
+X-Api-Key: {{apiKey}}
+
+###

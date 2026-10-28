@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="StagePass.Api/StagePass.Api.csproj" />
+  <Project Path="StagePass.Tests/StagePass.Tests.csproj" />
+</Solution>
