@@ -3,218 +3,283 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StagePass — Concurrency Demo</title>
+  <title>Concurrency Demo — StagePass</title>
   <link rel="stylesheet" href="css/site.css">
-  <style>
-    /* Demo-specific styles */
-    .demo-hero {
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(59, 130, 246, 0.1));
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: var(--space-xl);
-      margin: var(--space-xl) 0;
-      text-align: center;
-    }
-    .demo-hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: var(--space-sm); }
-    .demo-hero p { color: var(--text-secondary); max-width: 560px; margin: 0 auto var(--space-lg); }
-    
-    .config-row { display: flex; gap: var(--space-md); flex-wrap: wrap; justify-content: center; align-items: flex-end; margin-bottom: var(--space-lg); }
-    .config-row .form-group { min-width: 140px; max-width: 180px; }
-    
-    .results-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: var(--space-md);
-      margin: var(--space-xl) 0;
-    }
-    .result-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: var(--space-lg);
-      text-align: center;
-    }
-    .result-card .rc-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); font-weight: 700; margin-bottom: var(--space-sm); }
-    .result-card .rc-value { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; transition: color 0.3s; }
-    .result-card.success .rc-value { color: var(--status-upcoming-text); }
-    .result-card.conflict .rc-value { color: #f59e0b; }
-    .result-card.error .rc-value { color: var(--alert-error-border); }
-    .result-card.total .rc-value { color: var(--text-primary); }
-    
-    .invariant-box {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: var(--space-xl);
-      text-align: center;
-      font-family: 'Courier New', monospace;
-      font-size: 1.1rem;
-    }
-    .invariant-box.pass { border-color: var(--status-upcoming-text); }
-    .invariant-box.fail { border-color: var(--alert-error-border); }
-    .invariant-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); font-family: system-ui; margin-bottom: var(--space-md); font-weight: 700; }
-    
-    .request-track {
-      height: 8px;
-      background: var(--bg-elevated);
-      border-radius: 4px;
-      margin-bottom: var(--space-lg);
-      overflow: hidden;
-      position: relative;
-    }
-    .track-success { position: absolute; left: 0; top: 0; height: 100%; background: var(--status-upcoming-text); border-radius: 4px; transition: width 0.1s; }
-    .track-conflict { position: absolute; top: 0; height: 100%; background: #f59e0b; border-radius: 4px; transition: width 0.1s; }
-    
-    .explainer { margin: var(--space-xl) 0; }
-    .explainer h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: var(--space-lg); }
-    .explainer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-lg); }
-    .explainer-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-lg); }
-    .explainer-card .ec-num { font-size: 2rem; font-weight: 900; color: var(--brand); line-height: 1; margin-bottom: var(--space-sm); }
-    .explainer-card .ec-title { font-weight: 700; margin-bottom: var(--space-sm); }
-    .explainer-card .ec-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
-    .code-snippet { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-lg); font-family: 'Courier New', monospace; font-size: 0.8rem; color: #a5b4fc; overflow-x: auto; margin-top: var(--space-md); line-height: 1.6; }
-    
-    #run-btn.running { background: var(--bg-elevated); color: var(--text-secondary); cursor: not-allowed; }
-    
-    @media (max-width: 600px) {
-      .results-grid { grid-template-columns: 1fr 1fr; }
-      .config-row .form-group { max-width: 100%; min-width: 100%; }
-    }
-  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="brand">Stage<span>Pass</span></a>
-      <nav class="site-nav">
-        <a href="index.html">All Events</a>
-        <a href="demo.html">🔬 Live Demo</a>
-        <a href="organizer.html">Organizer</a>
-      </nav>
+
+  <nav class="site-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">Stage<span>Pass</span></a>
+      <div class="nav-links">
+        <a href="index.html">Discover</a>
+        <a href="demo.html" class="active">🔬 Demo</a>
+        <a href="dashboard.html">Organizer</a>
+      </div>
+      <div class="nav-auth-zone nav-auth"></div>
+      <button class="nav-hamburger" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </header>
+    <div class="nav-mobile-menu">
+      <a href="index.html">Discover</a>
+      <a href="demo.html">🔬 Demo</a>
+      <a href="dashboard.html">Organizer</a>
+    </div>
+  </nav>
 
-  <main class="container">
+  <!-- HERO -->
+  <section class="demo-hero">
+    <div class="container demo-hero-content">
+      <div class="demo-pretitle">Live Concurrency Test</div>
+      <h1 class="demo-h1">
+        Zero overselling.<br>
+        <span class="highlight">Mathematically guaranteed.</span>
+      </h1>
+      <p class="demo-subtitle">
+        Watch StagePass handle hundreds of simultaneous ticket requests in real-time.
+        The atomic SQL UPDATE prevents overselling — regardless of how many users click at once.
+      </p>
+      <div class="demo-config">
+        <div class="cfg-field">
+          <span class="cfg-label">Available Tickets</span>
+          <input class="cfg-input" type="number" id="cfg-tickets" value="100" min="1" max="10000">
+        </div>
+        <div class="cfg-field">
+          <span class="cfg-label">Concurrent Requests</span>
+          <input class="cfg-input" type="number" id="cfg-requests" value="300" min="10" max="50000">
+        </div>
+        <div class="cfg-field">
+          <span class="cfg-label">Pool Size (concurrent)</span>
+          <input class="cfg-input" type="number" id="cfg-pool"
+                 value="200" min="10" max="500"
+                 title="Max requests in flight at one time. Keep ≤ 500 to avoid browser limits.">
+        </div>
+        <button id="demo-run-btn">▶ Run Test</button>
+      </div>
+      <p style="font-size:var(--f-xs);color:var(--text-ghost);margin-top:8px;text-align:center;">
+        Pool Size controls how many requests are active simultaneously.
+        200 is optimal. Setting it higher than 500 may cause browser socket errors.
+      </p>
+      <p id="demo-setup-status" style="font-size:var(--f-xs);color:var(--text-ghost);margin-top:var(--sp-4);min-height:20px;"></p>
+    </div>
+  </section>
 
-    <!-- HERO -->
-    <section class="demo-hero">
-      <h1>Zero Overselling Guarantee</h1>
-      <p>Watch StagePass handle hundreds of simultaneous booking requests in real-time. The atomic SQL UPDATE prevents overselling regardless of concurrency.</p>
-      
-      <div class="config-row">
-        <div class="form-group">
-          <label for="cfg-tickets">Available Tickets</label>
-          <input type="number" id="cfg-tickets" value="100" min="1" max="500">
+  <div class="container">
+
+    <!-- REQUEST STORM VISUALIZER -->
+    <div class="storm-wrap" id="storm-wrap">
+      <canvas class="storm-canvas" id="storm-canvas"></canvas>
+      <div class="storm-idle-msg" id="storm-idle">
+        Run the test to see the live request stream →
+      </div>
+      <div class="storm-legend">
+        <div class="storm-legend-item">
+          <div class="legend-dot" style="background:#10b981;
+               box-shadow:0 0 6px rgba(16,185,129,0.6)"></div>
+          Ticket allocated
         </div>
-        <div class="form-group">
-          <label for="cfg-requests">Concurrent Requests</label>
-          <input type="number" id="cfg-requests" value="300" min="1" max="600">
+        <div class="storm-legend-item">
+          <div class="legend-dot" style="background:#f59e0b;
+               box-shadow:0 0 6px rgba(245,158,11,0.5)"></div>
+          Sold out
         </div>
-        <div class="form-group">
-          <label style="visibility:hidden">.</label>
-          <button id="run-btn" class="btn btn-primary btn-lg">▶ Run Concurrency Test</button>
+        <div class="storm-legend-item">
+          <div class="legend-dot" style="background:#ef4444;
+               box-shadow:0 0 6px rgba(239,68,68,0.5)"></div>
+          Error / rate limited
+        </div>
+        <div class="storm-legend-item">
+          <div class="legend-dot" style="background:rgba(255,255,255,0.15)"></div>
+          In flight
         </div>
       </div>
-      <p id="setup-status" style="font-size:0.85rem; color:var(--text-secondary);"></p>
-    </section>
+    </div>
 
     <!-- PROGRESS BAR -->
-    <div class="request-track">
-      <div class="track-success" id="track-success" style="width:0%"></div>
-      <div class="track-conflict" id="track-conflict" style="left:0%; width:0%"></div>
+    <div class="demo-progress-wrap">
+      <div class="demo-progress-label">
+        <span id="progress-label-left">Ready to run</span>
+        <span id="progress-label-right"></span>
+      </div>
+      <div class="demo-progress-bar">
+        <div class="demo-bar-success" id="bar-success" style="width:0"></div>
+        <div class="demo-bar-conflict" id="bar-conflict" style="width:0;left:0"></div>
+        <div class="demo-bar-ratelimit" id="bar-ratelimit"
+             style="position:absolute;top:0;height:100%;
+                    background:var(--warn);border-radius:6px;
+                    width:0%;left:0%;transition:width 0.1s,left 0.1s;"></div>
+        <div class="demo-bar-errors" id="bar-errors"
+             style="position:absolute;top:0;height:100%;
+                    background:var(--bad);border-radius:6px;
+                    width:0%;left:0%;transition:width 0.1s,left 0.1s;"></div>
+      </div>
     </div>
 
     <!-- RESULT CARDS -->
-    <div class="results-grid" id="results-grid">
-      <div class="result-card total">
-        <div class="rc-label">Total Sent</div>
-        <div class="rc-value" id="r-total">—</div>
+    <div class="demo-results" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+      <div class="demo-result-card total">
+        <div class="demo-result-label">Total Requests</div>
+        <div class="demo-result-num" id="r-total">—</div>
+        <div class="demo-result-desc">Sent via controlled pool</div>
       </div>
-      <div class="result-card success">
-        <div class="rc-label">✓ Tickets Allocated</div>
-        <div class="rc-value" id="r-success">—</div>
+      <div class="demo-result-card success">
+        <div class="demo-result-label">✓ Tickets Allocated</div>
+        <div class="demo-result-num" id="r-success">—</div>
+        <div class="demo-result-desc">Should equal ticket count</div>
       </div>
-      <div class="result-card conflict">
-        <div class="rc-label">⊘ Sold Out (409)</div>
-        <div class="rc-value" id="r-conflict">—</div>
+      <div class="demo-result-card conflict">
+        <div class="demo-result-label">⊘ Sold Out</div>
+        <div class="demo-result-num" id="r-conflict">—</div>
+        <div class="demo-result-desc">409 Conflict (correct)</div>
       </div>
-      <div class="result-card error">
-        <div class="rc-label">✗ HTTP Errors</div>
-        <div class="rc-value" id="r-errors">—</div>
+      <div class="demo-result-card error">
+        <div class="demo-result-label">✗ Server Errors</div>
+        <div class="demo-result-num" id="r-errors">—</div>
+        <div class="demo-result-desc">Must be zero</div>
       </div>
-      <div class="result-card error">
-        <div class="rc-label">⚠ Transport Failures</div>
-        <div class="rc-value" id="r-transport">—</div>
+      <div class="demo-result-card" style="border-top:3px solid var(--warn)">
+        <div class="demo-result-label">⚡ Rate Limited</div>
+        <div class="demo-result-num" id="r-ratelimit" style="color:var(--warn)">—</div>
+        <div class="demo-result-desc">429 responses (should be 0)</div>
+      </div>
+      <div class="demo-result-card" style="border-top:3px solid var(--text-low)">
+        <div class="demo-result-label">✓ Completed</div>
+        <div class="demo-result-num" id="r-done" style="color:var(--text-high)">—</div>
+        <div class="demo-result-desc">Total processed so far</div>
       </div>
     </div>
 
-    <!-- INVARIANT CHECK -->
-    <div class="invariant-box" id="invariant-box" style="margin-bottom:var(--space-xl);">
-      <div class="invariant-label">Database Inventory Invariant</div>
-      <div id="invariant-formula" style="color:var(--text-secondary);">
+    <!-- THROUGHPUT (RPS) -->
+    <div style="text-align:center; margin-bottom:var(--sp-8);">
+      <span style="font-size:var(--f-sm);color:var(--text-low);">Throughput: </span>
+      <span id="r-rps" style="font-size:var(--f-2xl);font-weight:800;
+            color:var(--text-high);font-variant-numeric:tabular-nums;">—</span>
+      <span style="font-size:var(--f-sm);color:var(--text-low);"> req/s</span>
+    </div>
+
+    <!-- INVARIANT PANEL -->
+    <div class="invariant-panel" id="invariant-panel">
+      <div class="invariant-heading">Database Inventory Invariant Verification</div>
+      <div class="invariant-formula" id="invariant-formula">
         Available + Pending + Confirmed = Capacity
       </div>
-      <div id="invariant-result" style="font-size:0.85rem; margin-top:var(--space-md); color:var(--text-secondary); font-family:system-ui;"></div>
+      <div class="invariant-result" id="invariant-result">
+        Run the test to verify the invariant against the live database.
+      </div>
     </div>
 
-    <!-- ENGINEERING EXPLAINER -->
-    <section class="explainer">
-      <h2>How It Works</h2>
+    <!-- EXPLAINER CARDS -->
+    <section style="margin-bottom:var(--sp-16);">
+      <h2 style="font-size:var(--f-2xl);font-weight:900;letter-spacing:-0.03em;margin-bottom:var(--sp-8);">How the guarantee works</h2>
       <div class="explainer-grid">
         <div class="explainer-card">
-          <div class="ec-num">❌</div>
-          <div class="ec-title">The Naive Approach (Broken)</div>
-          <div class="ec-text">Read available count into C#. Check if available ≥ quantity. Issue a separate UPDATE. Under concurrent load, two requests both pass the check before either commits. Result: overselling.</div>
+          <div class="ec-icon">❌</div>
+          <h3 class="ec-title">The Naive Approach</h3>
+          <p class="ec-text">
+            Most systems read available count into memory, check it in code, then issue a
+            separate UPDATE. Under concurrent load, two threads both read "1 remaining"
+            before either commits. Both proceed. You oversell.
+          </p>
         </div>
         <div class="explainer-card">
-          <div class="ec-num">✅</div>
-          <div class="ec-title">The Atomic Approach (StagePass)</div>
-          <div class="ec-text">Push the check and decrement into a single SQL statement. SQL Server serialises concurrent UPDATEs at the row level. The second request finds Available already reduced and affects 0 rows — rejected cleanly.</div>
-          <div class="code-snippet">UPDATE TicketTypes
-SET Available = Available - @qty
-WHERE TicketTypeId = @id
-  AND Available >= @qty
-  AND PerformanceId IN (
-    SELECT PerformanceId
-    FROM Performances
-    WHERE Status = 'Upcoming'
+          <div class="ec-icon">✅</div>
+          <h3 class="ec-title">The Atomic Approach</h3>
+          <p class="ec-text">
+            StagePass pushes the check and decrement into a single SQL statement. SQL Server
+            serialises competing UPDATEs at the row level. The losing request finds zero rows
+            affected and is rejected cleanly — with no partial state.
+          </p>
+          <div class="sql-snippet">
+<span class="sql-kw">UPDATE</span> TicketTypes
+<span class="sql-kw">SET</span> Available <span class="sql-cond">=</span> Available <span class="sql-cond">-</span> <span class="sql-val">@qty</span>
+<span class="sql-kw">WHERE</span> TicketTypeId <span class="sql-cond">=</span> <span class="sql-val">@id</span>
+  <span class="sql-kw">AND</span> Available <span class="sql-cond">>=</span> <span class="sql-val">@qty</span>
+  <span class="sql-kw">AND</span> PerformanceId <span class="sql-kw">IN</span> (
+    <span class="sql-kw">SELECT</span> PerformanceId
+    <span class="sql-kw">FROM</span> Performances
+    <span class="sql-kw">WHERE</span> Status <span class="sql-cond">=</span> <span class="sql-val">'Upcoming'</span>
   )</div>
         </div>
         <div class="explainer-card">
-          <div class="ec-num">🔑</div>
-          <div class="ec-title">Idempotency</div>
-          <div class="ec-text">Each request carries a unique client-generated GUID. If a network retry re-sends the same key, the server returns the existing hold — never a duplicate. A UNIQUE index enforces this at the database level.</div>
+          <div class="ec-icon">🔑</div>
+          <h3 class="ec-title">Idempotency</h3>
+          <p class="ec-text">
+            Each request carries a client-generated UUID. If a network retry re-sends the same
+            request, the server returns the existing hold — never a duplicate. A UNIQUE index
+            enforces this at the database level, even under race conditions.
+          </p>
         </div>
         <div class="explainer-card">
-          <div class="ec-num">⏱</div>
-          <div class="ec-title">Hold Expiry</div>
-          <div class="ec-text">Unconfirmed holds expire after 5 minutes. A background worker restores inventory using an aggregated batch UPDATE — so expired tickets re-enter the available pool correctly even when multiple holds expire at once.</div>
+          <div class="ec-icon">🛡️</div>
+          <h3 class="ec-title">Database Constraints</h3>
+          <p class="ec-text">
+            SQL Server CHECK constraints prevent Available from going below 0 or above Capacity
+            at the engine level. Even a bug in application logic cannot violate the invariant —
+            the database itself refuses the write.
+          </p>
+        </div>
+        <div class="explainer-card">
+          <div class="ec-icon">🔄</div>
+          <h3 class="ec-title">Controlled Concurrency</h3>
+          <p class="ec-text">
+            The demo uses a rolling pool — keeping exactly <strong>Pool Size</strong>
+            requests active at any moment. As each resolves, the next fires immediately.
+            This prevents browser socket exhaustion at high request counts and mirrors
+            how real load testers like k6 work. The inventory guarantee holds regardless
+            of pool size.
+          </p>
         </div>
       </div>
     </section>
 
     <!-- TEST EVIDENCE -->
-    <section style="margin-bottom: var(--space-xl);">
-      <h2 style="font-size:1.3rem; font-weight:800; margin-bottom:var(--space-lg);">Automated Test Evidence</h2>
-      <div class="section-card">
-        <table class="data-table">
-          <thead><tr><th>Test</th><th>Type</th><th>Proves</th><th>Result</th></tr></thead>
-          <tbody>
-            <tr><td>500 concurrent requests, 100 tickets</td><td>Concurrency</td><td>Exactly 100 allocated, 400 rejected, 0 server errors</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-            <tr><td>50 concurrent requests, same idempotency key</td><td>Idempotency</td><td>Exactly 1 hold created, inventory decremented once</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-            <tr><td>Inventory invariant after mixed operations</td><td>Correctness</td><td>Available + Pending + Confirmed = Capacity always</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-            <tr><td>Confirm expired hold</td><td>Lifecycle</td><td>Returns 409 HoldExpired, not 200</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-            <tr><td>Wrong owner confirmation</td><td>Security</td><td>Returns 409 InvalidOwner</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-            <tr><td>Background expiry restores inventory</td><td>Worker</td><td>Available increments correctly after hold expires</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
-          </tbody>
-        </table>
+    <section class="test-results-section">
+      <h2>Automated Test Evidence</h2>
+      <div class="test-count-banner">✓ 86 tests — all passing against live SQL Server</div>
+      <div class="panel">
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Test</th>
+                <th>Type</th>
+                <th>What it proves</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>500 concurrent requests, 100 tickets</td><td>Concurrency</td><td>Exactly 100 allocated, 400 rejected, 0 errors</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>50 concurrent requests, same idempotency key</td><td>Race condition</td><td>Exactly 1 hold, inventory decremented once</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Inventory invariant after mixed operations</td><td>Correctness</td><td>Available + Pending + Confirmed = Capacity always</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Confirm expired hold</td><td>Lifecycle</td><td>Returns 409 HoldExpired, not 200</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Background worker restores inventory</td><td>Expiry</td><td>Expired holds release tickets correctly</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Wrong owner confirmation</td><td>Security</td><td>Returns 409 InvalidOwner</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Rate limiting disabled in test environment</td><td>Configuration</td><td>Config flag correctly disables limiter</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Demo endpoints absent outside Development</td><td>Security</td><td>Routes do not exist in production config</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+              <tr><td>Session authentication &amp; organizer RBAC</td><td>Auth</td><td>PBKDF2-SHA256 hashing, session tokens, 401/403 enforcement</td><td><span class="badge badge-upcoming">PASS</span></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
-  </main>
+  </div>
 
-  <script src="js/toast.js"></script>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <p>© 2026 StagePass — Live event ticketing with a concurrency guarantee.</p>
+        <a href="index.html" style="font-size:var(--f-xs);color:var(--text-ghost);">Browse events →</a>
+      </div>
+    </div>
+  </footer>
+
   <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/storm.js"></script>
   <script src="js/demo.js"></script>
 </body>
 </html>

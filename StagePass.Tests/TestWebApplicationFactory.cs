@@ -1,9 +1,15 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StagePass.Api.Data;
+using StagePass.Api.Entities;
+using Xunit;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace StagePass.Tests;
 
@@ -12,12 +18,18 @@ public class DatabaseIntegrationTestsCollection : ICollectionFixture<TestWebAppl
 {
 }
 
+[CollectionDefinition("Integration", DisableParallelization = true)]
+public class IntegrationCollection : ICollectionFixture<StagePassTestFixture>
+{
+}
+
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     private const string FallbackTestConnectionString =
         "Server=localhost;Database=StagePassTestDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
-    public const string DefaultTestOrganizerApiKey = "test-only-organizer-api-key";
+    public const string OrganizerEmail = "admin@stagepass.local";
+    public const string OrganizerPassword = "StagePass2026!";
 
     private static readonly SemaphoreSlim _initLock = new(1, 1);
     private bool _initialized;
@@ -36,23 +48,37 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureAppConfiguration((_, config) =>
         {
             var testConn = ResolveTestConnectionString();
-            var built = config.Build();
-            var existingKey = built["OrganizerApiKey"];
 
-            var overrides = new Dictionary<string, string?>
+            config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 // Unconditionally pin tests to the isolated test database even if a derived
                 // host switches environment to Development (where User Secrets would otherwise load).
                 ["ConnectionStrings:DefaultConnection"] = testConn
-            };
-
-            if (string.IsNullOrWhiteSpace(existingKey))
-            {
-                overrides["OrganizerApiKey"] = DefaultTestOrganizerApiKey;
-            }
-
-            config.AddInMemoryCollection(overrides);
+            });
         });
+    }
+
+    /// <summary>Logs in as the seeded demo organizer and returns the session token.</summary>
+    public async Task<string> LoginAsOrganizerAsync()
+    {
+        using var client = CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/login",
+            new { email = OrganizerEmail, password = OrganizerPassword });
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("token").GetString()!;
+    }
+
+    /// <summary>Registers a fresh user with a unique email and returns (token, email). Cleaned up by ResetDatabaseAsync.</summary>
+    public async Task<(string Token, string Email)> RegisterUserAsync(bool isOrganizer = false, string password = "Passw0rd!123")
+    {
+        var email = $"user-{Guid.NewGuid():N}@example.com";
+        using var client = CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/register",
+            new { email, password, name = "Test User", isOrganizer });
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return (body.GetProperty("token").GetString()!, email);
     }
 
     public async Task ResetDatabaseAsync()
@@ -73,15 +99,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             if (!_initialized)
             {
                 await context.Database.MigrateAsync();
-                await DbInitializer.SeedAsync(Services);
                 _initialized = true;
             }
-            else if (!await context.Venues.AnyAsync())
-            {
-                await DbInitializer.SeedAsync(Services);
-            }
+
+            // Idempotent: seeds the organizer login and (when the DB is empty) the sample data.
+            await DbInitializer.SeedAsync(Services);
 
             // Order matters — FK constraints
+            await context.Database.ExecuteSqlRawAsync("DELETE FROM AppSessions");
+            await context.Database.ExecuteSqlRawAsync($"DELETE FROM AppUsers WHERE Email <> '{OrganizerEmail}'");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Bookings");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM ReservationHolds");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Events WHERE Category = 'Demo'");
@@ -95,8 +121,19 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             _initLock.Release();
         }
     }
+
+    public async Task<TicketType> GetSeedTicketTypeAsync()
+    {
+        using var scope = Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<StagePassDbContext>();
+        return await ctx.TicketTypes.AsNoTracking().FirstAsync();
+    }
 }
 
 public class StagePassWebApplicationFactory : TestWebApplicationFactory
+{
+}
+
+public class StagePassTestFixture : TestWebApplicationFactory
 {
 }

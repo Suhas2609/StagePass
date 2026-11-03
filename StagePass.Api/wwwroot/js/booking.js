@@ -1,83 +1,130 @@
 (function () {
   'use strict';
 
-  const bookingDetail = document.getElementById('booking-detail');
-  const errorDisplay = document.getElementById('error-display');
+  const bookingContainer = document.getElementById('booking-container');
+
+  function parseUtcDate(value) {
+    const str = String(value);
+    return new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(str) ? str : str + 'Z');
+  }
 
   function formatDateTime(value) {
-    const str = String(value);
-    const d = new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(str) ? str : str + 'Z');
-    return d.toLocaleString('en-GB', {
-      dateStyle: 'full',
-      timeStyle: 'short'
+    if (!value) return '—';
+    return parseUtcDate(value).toLocaleString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
-  function renderError(message) {
-    if (errorDisplay) {
-      errorDisplay.textContent = message;
+  function copyReference(ref) {
+    const fallbackCopy = () => {
+      const temp = document.createElement('textarea');
+      temp.value = ref;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ref)
+        .catch(() => fallbackCopy())
+        .then(() => {
+          if (typeof window.showToast === 'function') {
+            window.showToast('Reference copied!', 'ok');
+          }
+        });
+    } else {
+      fallbackCopy();
+      if (typeof window.showToast === 'function') {
+        window.showToast('Reference copied!', 'ok');
+      }
     }
-    bookingDetail.innerHTML = '';
-    const wrapper = document.createElement('div');
-    wrapper.style.textAlign = 'center';
-    wrapper.style.padding = '60px 0';
-
-    const p = document.createElement('p');
-    p.style.color = 'var(--text-secondary)';
-    p.textContent = message;
-
-    const backLink = document.createElement('a');
-    backLink.className = 'btn btn-secondary';
-    backLink.href = 'index.html';
-    backLink.style.marginTop = 'var(--space-lg)';
-    backLink.textContent = '← Return to All Events';
-
-    wrapper.append(p, backLink);
-    bookingDetail.appendChild(wrapper);
   }
 
-  function createDetailRow(label, value, isHighlight) {
+  function renderErrorCard(message) {
+    if (!bookingContainer) return;
+    bookingContainer.innerHTML = '';
+
+    const card = document.createElement('div');
+    card.className = 'confirm-card fade-up';
+
+    const body = document.createElement('div');
+    body.className = 'confirm-body text-center';
+    body.style.padding = '48px 32px';
+
+    const title = document.createElement('h1');
+    title.style.fontSize = 'var(--f-2xl)';
+    title.style.fontWeight = '800';
+    title.style.marginBottom = 'var(--sp-3)';
+    title.textContent = 'Booking Unavailable';
+
+    const desc = document.createElement('p');
+    desc.style.color = 'var(--text-mid)';
+    desc.style.marginBottom = 'var(--sp-6)';
+    desc.textContent = message;
+
+    const backBtn = document.createElement('a');
+    backBtn.href = 'index.html';
+    backBtn.className = 'btn btn-brand btn-full btn-lg';
+    backBtn.textContent = 'Browse Events';
+
+    body.append(title, desc, backBtn);
+    card.appendChild(body);
+    bookingContainer.appendChild(card);
+  }
+
+  function createDetailRow(label, value, isPrice = false) {
     const row = document.createElement('div');
     row.className = 'detail-row';
 
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'label';
-    labelSpan.textContent = label;
+    const lbl = document.createElement('span');
+    lbl.className = 'lbl';
+    lbl.textContent = label;
 
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'value';
-    if (isHighlight) {
-      valueSpan.style.color = 'var(--brand)';
-    }
-    valueSpan.textContent = value;
+    const val = document.createElement('span');
+    val.className = isPrice ? 'val price' : 'val';
+    val.textContent = value;
 
-    row.append(labelSpan, valueSpan);
+    row.append(lbl, val);
     return row;
   }
 
   function renderBooking(booking) {
-    bookingDetail.innerHTML = '';
-    if (errorDisplay) errorDisplay.textContent = '';
+    if (!bookingContainer) return;
+    bookingContainer.innerHTML = '';
 
-    const container = document.createElement('div');
-    container.className = 'booking-success fade-in';
+    const card = document.createElement('div');
+    card.className = 'confirm-card fade-up';
 
-    // Check Icon
-    const checkIcon = document.createElement('div');
-    checkIcon.className = 'check-icon';
-    checkIcon.textContent = '✓';
+    // Top Header
+    const top = document.createElement('div');
+    top.className = 'confirm-top';
 
-    // Headings
+    const check = document.createElement('div');
+    check.className = 'confirm-check';
+    check.textContent = '✓';
+
     const heading = document.createElement('h1');
-    heading.textContent = 'Booking Confirmed!';
+    heading.textContent = 'Booking confirmed!';
 
     const subtitle = document.createElement('p');
-    subtitle.className = 'subtitle';
-    subtitle.textContent = 'Your tickets are secured. Please save or present your booking reference upon arrival.';
+    subtitle.textContent = 'Your tickets are secured and ready for the event.';
 
-    // Monospace Ref Box
-    const refBox = document.createElement('div');
-    refBox.className = 'ref-box';
+    top.append(check, heading, subtitle);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'confirm-body';
+
+    // Clickable Reference Display
+    const refDisplay = document.createElement('div');
+    refDisplay.className = 'ref-display';
+    refDisplay.title = 'Click to copy booking reference';
 
     const refLabel = document.createElement('div');
     refLabel.className = 'ref-label';
@@ -87,89 +134,78 @@
     refCode.className = 'ref-code';
     refCode.textContent = booking.bookingReference;
 
-    const copyBtnWrapper = document.createElement('div');
-    copyBtnWrapper.style.marginTop = 'var(--space-md)';
+    const refHint = document.createElement('div');
+    refHint.className = 'ref-hint';
+    refHint.textContent = 'Click to copy reference';
+
+    refDisplay.append(refLabel, refCode, refHint);
+    refDisplay.addEventListener('click', () => copyReference(booking.bookingReference));
+
+    // Venue Note
+    const venueNote = document.createElement('div');
+    venueNote.className = 'venue-note';
+    venueNote.textContent = 'Please present this reference at the venue entrance.';
+
+    let emailNote = null;
+    if (booking.customerIdentifier?.includes('@')) {
+      emailNote = document.createElement('p');
+      emailNote.style.cssText = 'font-size:var(--f-xs);color:var(--text-ghost);text-align:center;margin-top:var(--sp-3);margin-bottom:var(--sp-4);';
+      emailNote.textContent = 'A confirmation email has been sent to your inbox.';
+    }
+
+    // Detail Rows
+    const detailRows = document.createElement('div');
+    detailRows.className = 'detail-rows';
+
+    detailRows.appendChild(createDetailRow('Event', booking.eventTitle || '—'));
+    detailRows.appendChild(createDetailRow('Date / Time', formatDateTime(booking.performanceStartDateTime)));
+    detailRows.appendChild(createDetailRow('Venue', booking.venueName || '—'));
+    detailRows.appendChild(createDetailRow('Ticket Type', booking.ticketTypeName || '—'));
+    detailRows.appendChild(createDetailRow('Quantity', String(booking.quantity)));
+    detailRows.appendChild(createDetailRow('Total Price', `£${Number(booking.totalPrice || 0).toFixed(2)}`, true));
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'confirm-actions';
+
+    const browseBtn = document.createElement('a');
+    browseBtn.href = 'index.html';
+    browseBtn.className = 'btn btn-brand btn-full btn-lg';
+    browseBtn.textContent = 'Browse More Events';
 
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
-    copyBtn.className = 'btn btn-secondary';
-    copyBtn.style.fontSize = '0.85rem';
-    copyBtn.style.padding = '8px 18px';
-    copyBtn.textContent = '📋 Copy Reference';
+    copyBtn.className = 'btn btn-outline btn-full';
+    copyBtn.textContent = 'Copy Reference';
+    copyBtn.addEventListener('click', () => copyReference(booking.bookingReference));
 
-    copyBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(booking.bookingReference);
-        copyBtn.textContent = '✓ Copied!';
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Copy Reference';
-        }, 2000);
-      } catch {
-        // Fallback if clipboard API is blocked
-        const temp = document.createElement('textarea');
-        temp.value = booking.bookingReference;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-        copyBtn.textContent = '✓ Copied!';
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Copy Reference';
-        }, 2000);
-      }
-    });
+    actions.append(browseBtn, copyBtn);
 
-    copyBtnWrapper.appendChild(copyBtn);
-    refBox.append(refLabel, refCode, copyBtnWrapper);
-
-    // Detail Card
-    const detailCard = document.createElement('div');
-    detailCard.className = 'booking-detail-card';
-
-    detailCard.appendChild(createDetailRow('Event', booking.eventTitle || '—'));
-    detailCard.appendChild(createDetailRow('Date', formatDateTime(booking.performanceStartDateTime)));
-    detailCard.appendChild(createDetailRow('Venue', booking.venueName || '—'));
-    detailCard.appendChild(createDetailRow('Ticket Type', booking.ticketTypeName || '—'));
-    detailCard.appendChild(createDetailRow('Quantity', String(booking.quantity)));
-    detailCard.appendChild(createDetailRow('Total Price', `£${Number(booking.totalPrice).toFixed(2)}`, true));
-
-    // Return Action
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.justifyContent = 'center';
-    actions.style.gap = 'var(--space-md)';
-    actions.style.marginTop = 'var(--space-lg)';
-
-    const backBtn = document.createElement('a');
-    backBtn.className = 'btn btn-secondary btn-lg';
-    backBtn.href = 'index.html';
-    backBtn.textContent = 'Browse More Events';
-    actions.appendChild(backBtn);
-
-    container.append(checkIcon, heading, subtitle, refBox, detailCard, actions);
-    bookingDetail.appendChild(container);
+    body.append(refDisplay, venueNote);
+    if (emailNote) {
+      body.appendChild(emailNote);
+    }
+    body.append(detailRows, actions);
+    card.append(top, body);
+    bookingContainer.appendChild(card);
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get('ref');
     if (!ref || !ref.trim()) {
-      renderError('No booking reference provided in URL.');
+      renderErrorCard('No booking reference was provided in the URL.');
       return;
     }
 
     try {
       const booking = await window.apiFetch(`/api/bookings/${encodeURIComponent(ref.trim())}`);
       renderBooking(booking);
-      if (typeof window.showToast === 'function') {
-        window.showToast('Booking confirmed!', 'success');
-      }
     } catch (err) {
       if (err.status === 404) {
-        renderError('Booking not found. Please verify your reference number.');
+        renderErrorCard('Booking not found. Please check your reference number and try again.');
       } else {
-        renderError(err.message || 'Unable to load booking details.');
+        renderErrorCard(err.message || 'Unable to load booking details.');
       }
     }
   });

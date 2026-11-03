@@ -15,7 +15,7 @@ namespace StagePass.Api.Controllers;
 public class DemoController : ControllerBase
 {
     public const int MinTickets = 1;
-    public const int MaxTickets = 500;
+    public const int MaxTickets = 10000;
     public const int MaxScenarioNameLength = 100;
 
     private readonly StagePassDbContext _context;

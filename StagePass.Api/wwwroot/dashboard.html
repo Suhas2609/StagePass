@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organizer Dashboard — StagePass</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="site-nav scrolled">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">Stage<span>Pass</span></a>
+      <div class="nav-links">
+        <a href="index.html">Discover</a>
+        <a href="demo.html">🔬 Demo</a>
+        <a href="dashboard.html" class="active">Organizer</a>
+      </div>
+      <div class="nav-auth-zone nav-auth"></div>
+      <button class="nav-hamburger" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile-menu">
+      <a href="index.html">Discover</a>
+      <a href="demo.html">🔬 Demo</a>
+      <a href="dashboard.html">Organizer</a>
+    </div>
+  </nav>
+
+  <!-- Auth gate (shown when not logged in as organizer) -->
+  <div class="auth-gate" id="auth-gate" hidden>
+    <div class="auth-gate-card">
+      <div class="icon">🔒</div>
+      <h2>Organizer access only</h2>
+      <p>You need an organizer account to access the dashboard. Sign in or register as an organizer.</p>
+      <div class="btns">
+        <a href="login.html?returnTo=dashboard.html" class="btn btn-brand">Sign in</a>
+        <a href="register.html?organizer=true" class="btn btn-outline">Register as Organizer</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main dashboard (hidden when not logged in) -->
+  <div class="dash-layout" id="dash-layout" hidden>
+
+    <!-- Sidebar -->
+    <aside class="dash-sidebar">
+      <div class="dash-sidebar-header">
+        <strong id="dash-user-name">Loading…</strong>
+        <p>Organizer</p>
+      </div>
+      <nav class="dash-nav" role="navigation">
+        <button class="dash-nav-item active" data-page="overview">
+          <span class="icon">📊</span> Overview
+        </button>
+        <button class="dash-nav-item" data-page="events">
+          <span class="icon">🎭</span> My Events
+        </button>
+        <button class="dash-nav-item" data-page="create">
+          <span class="icon">➕</span> Create
+        </button>
+        <button class="dash-nav-item" data-page="bookings">
+          <span class="icon">🎟️</span> Bookings
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="dash-main">
+
+      <!-- PAGE: OVERVIEW -->
+      <div class="dash-page active" id="page-overview">
+        <h1 class="dash-page-title">Overview</h1>
+        <p class="dash-page-sub">Real-time snapshot of your events and inventory.</p>
+        <div class="stat-grid" id="overview-stats">
+          <div class="stat-card">
+            <div class="stat-label">Total Bookings</div>
+            <div class="stat-value" id="stat-bookings">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tickets Sold</div>
+            <div class="stat-value" id="stat-sold">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Holds</div>
+            <div class="stat-value" id="stat-holds">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Available</div>
+            <div class="stat-value" id="stat-avail">—</div>
+          </div>
+        </div>
+        <div class="form-section">
+          <h3>Quick Inventory Check</h3>
+          <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <input class="form-input" type="number" id="inv-perf-id" placeholder="Performance ID" min="1" style="max-width:220px;">
+            <button class="btn btn-brand" id="inv-load-btn">Load Inventory</button>
+          </div>
+          <div id="inv-results"></div>
+        </div>
+      </div>
+
+      <!-- PAGE: MY EVENTS -->
+      <div class="dash-page" id="page-events">
+        <h1 class="dash-page-title">My Events</h1>
+        <p class="dash-page-sub">Manage performances and view booking details.</p>
+        <div class="form-section">
+          <h3>Performance Bookings</h3>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+            <input class="form-input" type="number" id="bookings-perf-id" placeholder="Performance ID" min="1" style="max-width:220px;">
+            <button class="btn btn-brand" id="load-bookings-btn">Load Bookings</button>
+            <button class="btn btn-outline" id="cancel-perf-btn" style="color:var(--bad);border-color:var(--bad);">Cancel Performance</button>
+          </div>
+          <div id="bookings-inv-summary" style="margin-bottom:24px;"></div>
+          <div id="bookings-table-wrap">
+            <p style="color:var(--text-low);font-size:var(--f-sm);">Enter a Performance ID above to view bookings.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: CREATE -->
+      <div class="dash-page" id="page-create">
+        <h1 class="dash-page-title">Create</h1>
+        <p class="dash-page-sub">Add a new event, schedule a performance, or set up ticket tiers.</p>
+
+        <div class="form-section">
+          <h3>New Event</h3>
+          <form id="form-event" novalidate>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label" for="ev-title">Event Title</label>
+                <input class="form-input" id="ev-title" placeholder="e.g. An Evening of Jazz" required>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="ev-category">Category</label>
+                <select class="form-input form-select" id="ev-category">
+                  <option value="Music">Music</option>
+                  <option value="Theatre">Theatre</option>
+                  <option value="Comedy">Comedy</option>
+                  <option value="Dance">Dance</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="ev-description">Description</label>
+              <input class="form-input" id="ev-description" placeholder="Optional short description">
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="ev-venue">Venue</label>
+              <select class="form-input form-select" id="ev-venue">
+                <option value="" disabled selected>Loading venues…</option>
+              </select>
+            </div>
+            <input type="hidden" id="ev-organizer" value="1">
+            <button type="submit" class="btn btn-brand">Create Event</button>
+          </form>
+          <div id="ev-result"></div>
+        </div>
+
+        <div class="form-section">
+          <h3>New Performance</h3>
+          <form id="form-performance" novalidate>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label" for="pf-event">Event ID</label>
+                <input class="form-input" type="number" id="pf-event" min="1" placeholder="From step above">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="pf-start">Start Date & Time</label>
+                <input class="form-input" type="datetime-local" id="pf-start" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-brand">Schedule Performance</button>
+          </form>
+          <div id="pf-result"></div>
+        </div>
+
+        <div class="form-section">
+          <h3>Add Ticket Type</h3>
+          <form id="form-tickettype" novalidate>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label" for="tt-perf">Performance ID</label>
+                <input class="form-input" type="number" id="tt-perf" min="1" placeholder="From step above">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tt-name">Tier Name</label>
+                <select class="form-input form-select" id="tt-name">
+                  <option>Standard</option>
+                  <option>Premium</option>
+                  <option>VIP</option>
+                  <option>Early Bird</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label" for="tt-price">Price (£)</label>
+                <input class="form-input" type="number" id="tt-price" min="0" step="0.01" placeholder="25.00">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="tt-capacity">Capacity</label>
+                <input class="form-input" type="number" id="tt-capacity" min="1" placeholder="100">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-brand">Add Ticket Type</button>
+          </form>
+          <div id="tt-result"></div>
+        </div>
+      </div>
+
+      <!-- PAGE: BOOKINGS (quick view) -->
+      <div class="dash-page" id="page-bookings">
+        <h1 class="dash-page-title">Bookings</h1>
+        <p class="dash-page-sub">View confirmed bookings for any performance.</p>
+        <div class="form-section">
+          <h3>Load Bookings</h3>
+          <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+            <input class="form-input" type="number" id="bk-perf-id" placeholder="Performance ID" min="1" style="max-width:220px;">
+            <button class="btn btn-brand" id="bk-load-btn">Load</button>
+          </div>
+          <div id="bk-summary" style="margin-bottom:20px;"></div>
+          <div id="bk-table-wrap">
+            <p style="color:var(--text-low);font-size:var(--f-sm);">Enter a Performance ID to view its bookings.</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/organizer.js"></script>
+</body>
+</html>

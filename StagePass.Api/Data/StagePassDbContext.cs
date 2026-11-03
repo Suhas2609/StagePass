@@ -17,6 +17,8 @@ public class StagePassDbContext : DbContext
     public DbSet<TicketType> TicketTypes => Set<TicketType>();
     public DbSet<ReservationHold> ReservationHolds => Set<ReservationHold>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
+    public DbSet<AppSession> AppSessions => Set<AppSession>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -136,6 +138,30 @@ public class StagePassDbContext : DbContext
 
             e.HasIndex(b => b.BookingReference).IsUnique();
             e.HasIndex(b => b.HoldId).IsUnique();
+        });
+
+        modelBuilder.Entity<AppUser>(u =>
+        {
+            u.HasKey(x => x.UserId);
+            u.Property(x => x.Email).HasMaxLength(254).IsRequired();
+            u.HasIndex(x => x.Email).IsUnique().HasDatabaseName("IX_AppUsers_Email");
+            u.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            u.Property(x => x.PasswordHash).HasMaxLength(256).IsRequired();
+            u.Property(x => x.PasswordSalt).HasMaxLength(256).IsRequired();
+            u.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()").HasColumnType("datetime2");
+        });
+
+        modelBuilder.Entity<AppSession>(s =>
+        {
+            s.HasKey(x => x.SessionId);
+            s.Property(x => x.SessionId).HasDefaultValueSql("NEWID()");
+            s.HasOne(x => x.User)
+             .WithMany(x => x.Sessions)
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            s.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()").HasColumnType("datetime2");
+            s.Property(x => x.ExpiresAt).HasColumnType("datetime2");
+            s.HasIndex(x => x.ExpiresAt).HasDatabaseName("IX_AppSessions_ExpiresAt");
         });
     }
 

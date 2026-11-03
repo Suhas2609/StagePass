@@ -1,241 +1,161 @@
 (function () {
   'use strict';
 
-  // Stored in JS module scope only (never in localStorage or sessionStorage).
-  let apiKey = '';
+  const authGate = document.getElementById('auth-gate');
+  const dashLayout = document.getElementById('dash-layout');
+  const dashUserName = document.getElementById('dash-user-name');
 
-  const errorDisplay = document.getElementById('error-display');
-  const statusBanner = document.getElementById('organizer-status');
-  const apiKeyInput = document.getElementById('api-key-input');
-  const connectBtn = document.getElementById('connect-btn');
-  const dashboard = document.getElementById('organizer-dashboard');
-  const statsRow = document.getElementById('stats-row');
+  const statBookings = document.getElementById('stat-bookings');
+  const statSold = document.getElementById('stat-sold');
+  const statHolds = document.getElementById('stat-holds');
+  const statAvail = document.getElementById('stat-avail');
 
-  const createEventForm = document.getElementById('create-event-form');
-  const eventResult = document.getElementById('event-result');
+  const invPerfId = document.getElementById('inv-perf-id');
+  const invLoadBtn = document.getElementById('inv-load-btn');
+  const invResults = document.getElementById('inv-results');
 
-  const createPerformanceForm = document.getElementById('create-performance-form');
-  const perfResult = document.getElementById('perf-result');
+  const bookingsPerfId = document.getElementById('bookings-perf-id');
+  const loadBookingsBtn = document.getElementById('load-bookings-btn');
+  const cancelPerfBtn = document.getElementById('cancel-perf-btn');
+  const bookingsInvSummary = document.getElementById('bookings-inv-summary');
+  const bookingsTableWrap = document.getElementById('bookings-table-wrap');
 
-  const createTicketTypeForm = document.getElementById('create-tickettype-form');
+  const formEvent = document.getElementById('form-event');
+  const evTitle = document.getElementById('ev-title');
+  const evCategory = document.getElementById('ev-category');
+  const evDescription = document.getElementById('ev-description');
+  const evVenue = document.getElementById('ev-venue');
+  const evOrganizer = document.getElementById('ev-organizer');
+  const evResult = document.getElementById('ev-result');
+
+  const formPerformance = document.getElementById('form-performance');
+  const pfEvent = document.getElementById('pf-event');
+  const pfStart = document.getElementById('pf-start');
+  const pfResult = document.getElementById('pf-result');
+
+  const formTicketType = document.getElementById('form-tickettype');
+  const ttPerf = document.getElementById('tt-perf');
+  const ttName = document.getElementById('tt-name');
+  const ttPrice = document.getElementById('tt-price');
+  const ttCapacity = document.getElementById('tt-capacity');
   const ttResult = document.getElementById('tt-result');
 
-  const viewBookingsBtn = document.getElementById('view-bookings-btn');
-  const cancelPerfBtn = document.getElementById('cancel-perf-btn');
-  const bookingsTableSection = document.getElementById('bookings-table');
-  const inventorySummarySection = document.getElementById('inventory-summary');
-  const bookingsPerformanceInput = document.getElementById('bookings-performance-id');
+  const bkPerfId = document.getElementById('bk-perf-id');
+  const bkLoadBtn = document.getElementById('bk-load-btn');
+  const bkSummary = document.getElementById('bk-summary');
+  const bkTableWrap = document.getElementById('bk-table-wrap');
+
+  function parseUtcDate(value) {
+    const str = String(value);
+    return new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(str) ? str : str + 'Z');
+  }
 
   function formatDateTime(value) {
-    const str = String(value);
-    const d = new Date(/(Z|[+-]\d{2}:?\d{2})$/i.test(str) ? str : str + 'Z');
-    return d.toLocaleString('en-GB', {
+    if (!value) return '—';
+    return parseUtcDate(value).toLocaleString('en-GB', {
       dateStyle: 'medium',
       timeStyle: 'short'
     });
   }
 
-  function clearFeedback() {
-    errorDisplay.textContent = '';
-    statusBanner.hidden = true;
-    statusBanner.textContent = '';
+  function showFormFeedback(targetEl, message, isError = false) {
+    if (!targetEl) return;
+    targetEl.innerHTML = '';
+    const box = document.createElement('div');
+    box.className = isError ? 'alert alert-bad' : 'form-success';
+    if (isError) box.style.marginTop = 'var(--sp-4)';
+    box.textContent = message;
+    targetEl.appendChild(box);
   }
 
-  function showStatus(msg) {
-    statusBanner.textContent = msg;
-    statusBanner.hidden = false;
-  }
+  function renderInventory(summary, targetEl) {
+    if (!targetEl) return;
+    targetEl.innerHTML = '';
 
-  function mapOrganizerError(err) {
-    if (err.status === 401) {
-      return 'Invalid API key. Please check the key and reconnect.';
-    }
-    switch (err.errorCode) {
-      case 'OrganizerNotFound':
-        return 'Organizer ID was not found.';
-      case 'VenueNotFound':
-        return 'Venue ID was not found.';
-      case 'StartDateTimeMustBeInFuture':
-        return 'Performance start date and time must be in the future.';
-      case 'EventNotFound':
-        return 'Event ID was not found.';
-      case 'PerformanceNotFound':
-        return 'Performance ID was not found.';
-      case 'TicketTypeNameAlreadyExists':
-        return 'A ticket type with this name already exists for this performance.';
-      case 'PerformanceCancelled':
-        return 'This performance is already cancelled.';
-      default:
-        return err.message || 'The request could not be completed.';
-    }
-  }
-
-  function handleError(err) {
-    errorDisplay.textContent = mapOrganizerError(err);
-  }
-
-  function authHeaders() {
-    return { 'X-Api-Key': apiKey };
-  }
-
-  function createStatCard(label, value, subText) {
-    const card = document.createElement('div');
-    card.className = 'stat-card fade-in';
-
-    const lbl = document.createElement('div');
-    lbl.className = 'stat-label';
-    lbl.textContent = label;
-
-    const val = document.createElement('div');
-    val.className = 'stat-value';
-    val.innerHTML = value;
-
-    card.append(lbl, val);
-
-    if (subText) {
-      const sub = document.createElement('div');
-      sub.className = 'stat-sub';
-      sub.textContent = subText;
-      card.appendChild(sub);
-    }
-
-    return card;
-  }
-
-  function renderStats(summaryList, bookingsList) {
-    statsRow.innerHTML = '';
-
-    const summary = summaryList || [];
-    const bookings = bookingsList || [];
-
-    const totalSold = summary.reduce((s, t) => s + (t.sold || 0), 0);
-    const totalCapacity = summary.reduce((s, t) => s + (t.capacity || 0), 0);
-    const totalAvailable = summary.reduce((s, t) => s + (t.available || 0), 0);
-    const pctUsed = totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0;
-
-    statsRow.appendChild(createStatCard('Total Sold', String(totalSold)));
-    statsRow.appendChild(createStatCard('Available', String(totalAvailable)));
-    statsRow.appendChild(createStatCard('Capacity Used', pctUsed + '%'));
-    statsRow.appendChild(createStatCard('Confirmed Bookings', String(bookings.length)));
-  }
-
-  function renderInventorySummary(summaryList) {
-    inventorySummarySection.innerHTML = '';
-
-    const heading = document.createElement('h3');
-    heading.style.fontSize = '1.05rem';
-    heading.style.fontWeight = '700';
-    heading.style.marginBottom = 'var(--space-md)';
-    heading.textContent = 'Inventory Breakdown';
-    inventorySummarySection.appendChild(heading);
-
-    if (!summaryList || summaryList.length === 0) {
+    const list = Array.isArray(summary) ? summary : [];
+    if (list.length === 0) {
       const p = document.createElement('p');
-      p.style.color = 'var(--text-secondary)';
-      p.textContent = 'No ticket types defined for this performance.';
-      inventorySummarySection.appendChild(p);
+      p.style.color = 'var(--text-low)';
+      p.style.fontSize = 'var(--f-sm)';
+      p.textContent = 'No ticket tiers configured for this performance.';
+      targetEl.appendChild(p);
       return;
     }
 
-    const grid = document.createElement('div');
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
-    grid.style.gap = 'var(--space-md)';
+    list.forEach(tier => {
+      const capacity = Number(tier.capacity || 0);
+      const sold = Number(tier.sold || 0);
+      const pct = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+      const fillClass = pct >= 90 ? 'low' : pct >= 60 ? 'mid' : '';
 
-    for (const item of summaryList) {
-      const card = document.createElement('div');
-      card.className = 'stat-card';
+      const row = document.createElement('div');
+      row.className = 'inv-row';
 
-      const label = document.createElement('div');
-      label.className = 'stat-label';
-      label.textContent = item.ticketTypeName;
+      const nameEl = document.createElement('div');
+      nameEl.className = 'inv-name';
+      nameEl.textContent = tier.ticketTypeName || 'Tier';
 
-      const capacity = item.capacity || 0;
-      const available = item.available || 0;
-      const sold = capacity - available;
-      const pctSold = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : 0;
+      const barWrap = document.createElement('div');
+      barWrap.className = 'inv-bar-wrap';
 
-      const value = document.createElement('div');
-      value.className = 'stat-value';
-      value.style.fontSize = '1.5rem';
-      value.innerHTML = `${available} <span style="font-size:0.85rem; font-weight:500; color:var(--text-secondary);">/ ${capacity} left</span>`;
+      const barFill = document.createElement('div');
+      barFill.className = `inv-bar-fill ${fillClass}`.trim();
+      barFill.style.width = `${pct}%`;
 
-      const sub = document.createElement('div');
-      sub.className = 'stat-sub';
-      sub.textContent = `${sold} sold (${pctSold}% filled)`;
+      barWrap.appendChild(barFill);
 
-      const bar = document.createElement('div');
-      bar.className = 'inv-bar';
+      const numbersEl = document.createElement('div');
+      numbersEl.className = 'inv-numbers';
+      numbersEl.textContent = `${sold}/${capacity} sold`;
 
-      const fill = document.createElement('div');
-      fill.className = 'inv-bar-fill';
-      fill.style.width = `${pctSold}%`;
-
-      if (available === 0) {
-        fill.classList.add('zero');
-      } else if (available < capacity * 0.2) {
-        fill.classList.add('low');
-      }
-
-      bar.appendChild(fill);
-      card.append(label, value, sub, bar);
-      grid.appendChild(card);
-    }
-
-    inventorySummarySection.appendChild(grid);
+      row.append(nameEl, barWrap, numbersEl);
+      targetEl.appendChild(row);
+    });
   }
 
-  function renderBookingsTable(bookings) {
-    bookingsTableSection.innerHTML = '';
+  function renderBookingsTable(bookings, targetEl) {
+    if (!targetEl) return;
+    targetEl.innerHTML = '';
 
-    const heading = document.createElement('h3');
-    heading.style.fontSize = '1.05rem';
-    heading.style.fontWeight = '700';
-    heading.style.margin = 'var(--space-xl) 0 var(--space-md)';
-    heading.textContent = 'Confirmed Bookings';
-    bookingsTableSection.appendChild(heading);
-
-    if (!bookings || bookings.length === 0) {
+    const list = Array.isArray(bookings) ? bookings : [];
+    if (list.length === 0) {
       const p = document.createElement('p');
-      p.style.color = 'var(--text-secondary)';
+      p.style.color = 'var(--text-low)';
+      p.style.fontSize = 'var(--f-sm)';
       p.textContent = 'No confirmed bookings for this performance yet.';
-      bookingsTableSection.appendChild(p);
+      targetEl.appendChild(p);
       return;
     }
 
-    const tableWrapper = document.createElement('div');
-    tableWrapper.style.overflowX = 'auto';
+    const wrap = document.createElement('div');
+    wrap.className = 'data-table-wrap';
 
     const table = document.createElement('table');
     table.className = 'data-table';
 
     const thead = document.createElement('thead');
-    const headerRow = document.createElement('tr');
-    for (const col of ['Booking Reference', 'Customer', 'Ticket Type', 'Quantity', 'Date']) {
+    const hRow = document.createElement('tr');
+    ['Reference', 'Customer', 'Ticket Type', 'Qty', 'Date'].forEach(col => {
       const th = document.createElement('th');
       th.textContent = col;
-      headerRow.appendChild(th);
-    }
-    thead.appendChild(headerRow);
+      hRow.appendChild(th);
+    });
+    thead.appendChild(hRow);
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    for (const b of bookings) {
+    list.forEach(b => {
       const tr = document.createElement('tr');
 
       const tdRef = document.createElement('td');
-      const code = document.createElement('code');
-      code.style.fontFamily = "'Courier New', monospace";
-      code.style.fontWeight = '700';
-      code.style.color = 'var(--brand)';
-      code.textContent = b.bookingReference;
-      tdRef.appendChild(code);
+      tdRef.className = 'ref-cell';
+      tdRef.textContent = b.bookingReference;
 
       const tdCustomer = document.createElement('td');
       tdCustomer.textContent = b.customerIdentifier;
 
-      const tdType = document.createElement('td');
-      tdType.textContent = b.ticketTypeName;
+      const tdTier = document.createElement('td');
+      tdTier.textContent = b.ticketTypeName;
 
       const tdQty = document.createElement('td');
       tdQty.textContent = String(b.quantity);
@@ -243,170 +163,289 @@
       const tdDate = document.createElement('td');
       tdDate.textContent = formatDateTime(b.bookingCreatedAt);
 
-      tr.append(tdRef, tdCustomer, tdType, tdQty, tdDate);
+      tr.append(tdRef, tdCustomer, tdTier, tdQty, tdDate);
       tbody.appendChild(tr);
-    }
+    });
 
     table.appendChild(tbody);
-    tableWrapper.appendChild(table);
-    bookingsTableSection.appendChild(tableWrapper);
+    wrap.appendChild(table);
+    targetEl.appendChild(wrap);
   }
 
-  async function loadPerformanceBookings(perfId) {
-    clearFeedback();
+  function resetOverviewStats() {
+    if (statBookings) statBookings.textContent = '—';
+    if (statSold) statSold.textContent = '—';
+    if (statHolds) statHolds.textContent = '—';
+    if (statAvail) statAvail.textContent = '—';
+  }
+
+  async function loadVenues() {
+    if (!evVenue) return;
     try {
-      const data = await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/bookings`, {
-        method: 'GET',
-        headers: authHeaders()
+      const venues = await window.apiFetch('/api/organizer/venues');
+      if (!Array.isArray(venues) || venues.length === 0) return;
+      evVenue.innerHTML = '';
+      venues.forEach((v, idx) => {
+        const opt = document.createElement('option');
+        opt.value = String(v.venueId);
+        opt.textContent = `${v.name} — ${v.city}`;
+        if (idx === 0) opt.selected = true;
+        evVenue.appendChild(opt);
       });
-
-      renderStats(data.summary || [], data.bookings || []);
-      renderInventorySummary(data.summary || []);
-      renderBookingsTable(data.bookings || []);
-    } catch (err) {
-      handleError(err);
+    } catch {
+      // Fail silently and leave the select showing "Loading venues…"
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    connectBtn.addEventListener('click', () => {
-      clearFeedback();
-      const entered = apiKeyInput.value.trim();
-      if (!entered) {
-        errorDisplay.textContent = 'Please enter an API key.';
-        return;
+  async function loadOverviewInventory() {
+    const perfId = parseInt(invPerfId ? invPerfId.value : '', 10);
+    if (Number.isNaN(perfId) || perfId < 1) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Please enter a valid Performance ID.', 'bad');
       }
-      apiKey = entered;
-      dashboard.hidden = false;
-      showStatus('Connected to Organizer Dashboard.');
-    });
+      return;
+    }
 
-    createEventForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      if (eventResult) eventResult.textContent = '';
+    try {
+      const data = await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/bookings`);
+      const bookings = data.bookings || [];
+      const summary = data.summary || [];
 
-      const payload = {
-        title: document.getElementById('event-title').value.trim(),
-        category: document.getElementById('event-category').value.trim(),
-        description: document.getElementById('event-description').value.trim(),
-        venueId: parseInt(document.getElementById('event-venue-id').value, 10),
-        organizerId: parseInt(document.getElementById('event-organizer-id').value, 10)
-      };
+      renderInventory(summary, invResults);
 
-      try {
-        const res = await window.apiFetch('/api/organizer/events', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
+      if (statBookings) statBookings.textContent = String(bookings.length);
+      if (statSold) statSold.textContent = String(summary.reduce((s, t) => s + (t.sold || 0), 0));
+      if (statAvail) statAvail.textContent = String(summary.reduce((s, t) => s + (t.available || 0), 0));
+      if (statHolds) statHolds.textContent = '—';
+    } catch (err) {
+      if (typeof window.showToast === 'function') {
+        window.showToast(err.message || 'Unable to load inventory.', 'bad');
+      }
+    }
+  }
+
+  async function loadBookingsAndInventory(perfIdInput, summaryTarget, tableTarget) {
+    const perfId = parseInt(perfIdInput ? perfIdInput.value : '', 10);
+    if (Number.isNaN(perfId) || perfId < 1) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Please enter a valid Performance ID.', 'bad');
+      }
+      return;
+    }
+
+    try {
+      const data = await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/bookings`);
+      renderInventory(data.summary || [], summaryTarget);
+      renderBookingsTable(data.bookings || [], tableTarget);
+    } catch (err) {
+      if (typeof window.showToast === 'function') {
+        window.showToast(err.message || 'Unable to load bookings.', 'bad');
+      }
+    }
+  }
+
+  async function cancelPerformance() {
+    const perfId = parseInt(bookingsPerfId ? bookingsPerfId.value : '', 10);
+    if (Number.isNaN(perfId) || perfId < 1) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Please enter a valid Performance ID first.', 'bad');
+      }
+      return;
+    }
+
+    if (!window.confirm('Cancel this performance? This will release all pending holds.')) {
+      return;
+    }
+
+    try {
+      await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/cancel`, {
+        method: 'PATCH'
+      });
+      if (typeof window.showToast === 'function') {
+        window.showToast('Performance cancelled. All pending holds released.', 'ok');
+      }
+      await loadBookingsAndInventory(bookingsPerfId, bookingsInvSummary, bookingsTableWrap);
+    } catch (err) {
+      if (err.status === 409) {
         if (typeof window.showToast === 'function') {
-          window.showToast(`Event created: ID ${res.eventId}`, 'success');
+          window.showToast('Performance is already cancelled.', 'bad');
         }
-        // Auto-populate perf-event-id
-        const perfEventInput = document.getElementById('perf-event-id');
-        if (perfEventInput) perfEventInput.value = String(res.eventId);
-        showStatus(`Event created successfully (Event ID: ${res.eventId}).`);
-      } catch (err) {
-        handleError(err);
+      } else if (typeof window.showToast === 'function') {
+        window.showToast(err.message || 'Could not cancel performance.', 'bad');
       }
-    });
+    }
+  }
 
-    createPerformanceForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      if (perfResult) perfResult.textContent = '';
+  function initSidebarNav() {
+    const navItems = document.querySelectorAll('.dash-nav-item[data-page]');
+    const pages = document.querySelectorAll('.dash-page');
 
-      const rawStart = document.getElementById('perf-start').value;
-      const startIso = rawStart ? new Date(rawStart).toISOString() : '';
-      const payload = {
-        eventId: parseInt(document.getElementById('perf-event-id').value, 10),
-        startDateTime: startIso
-      };
+    navItems.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.page;
+        navItems.forEach(item => item.classList.remove('active'));
+        btn.classList.add('active');
 
-      try {
-        const res = await window.apiFetch('/api/organizer/performances', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
+        pages.forEach(page => {
+          page.classList.toggle('active', page.id === `page-${target}`);
         });
-        if (typeof window.showToast === 'function') {
-          window.showToast(`Performance created: ID ${res.performanceId}`, 'success');
+
+        if (target === 'events') {
+          if (bookingsInvSummary) bookingsInvSummary.innerHTML = '';
+          if (bookingsTableWrap) {
+            bookingsTableWrap.innerHTML = '<p style="color:var(--text-low);font-size:var(--f-sm);">Enter a Performance ID above to view bookings.</p>';
+          }
+        } else if (target === 'bookings') {
+          if (bkSummary) bkSummary.innerHTML = '';
+          if (bkTableWrap) {
+            bkTableWrap.innerHTML = '<p style="color:var(--text-low);font-size:var(--f-sm);">Enter a Performance ID to view its bookings.</p>';
+          }
         }
-        // Auto-populate tt-perf-id and bookings-performance-id
-        const ttPerfInput = document.getElementById('tt-perf-id');
-        if (ttPerfInput) ttPerfInput.value = String(res.performanceId);
-        if (bookingsPerformanceInput) bookingsPerformanceInput.value = String(res.performanceId);
-        showStatus(`Performance created successfully (Performance ID: ${res.performanceId}).`);
-      } catch (err) {
-        handleError(err);
-      }
+      });
     });
+  }
 
-    createTicketTypeForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      clearFeedback();
-      if (ttResult) ttResult.textContent = '';
-
-      const perfId = parseInt(document.getElementById('tt-perf-id').value, 10);
-      const payload = {
-        name: document.getElementById('tt-name').value.trim(),
-        price: parseFloat(document.getElementById('tt-price').value),
-        capacity: parseInt(document.getElementById('tt-capacity').value, 10)
-      };
-
-      try {
-        const res = await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/tickettypes`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify(payload)
-        });
-        if (typeof window.showToast === 'function') {
-          window.showToast(`Ticket type created: ID ${res.ticketTypeId}`, 'success');
-        }
-        showStatus(`Ticket type added successfully (Ticket Type ID: ${res.ticketTypeId}).`);
-      } catch (err) {
-        handleError(err);
-      }
-    });
-
-    if (viewBookingsBtn) {
-      viewBookingsBtn.addEventListener('click', () => {
-        const perfId = parseInt(bookingsPerformanceInput.value, 10);
-        if (Number.isNaN(perfId) || perfId < 1) {
-          errorDisplay.textContent = 'Please enter a valid Performance ID.';
+  function initCreateForms() {
+    if (formEvent) {
+      formEvent.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const title = evTitle ? evTitle.value.trim() : '';
+        if (!title) {
+          showFormFeedback(evResult, 'Please enter an event title.', true);
           return;
         }
-        loadPerformanceBookings(perfId);
+
+        const payload = {
+          title,
+          category: evCategory ? evCategory.value : 'Music',
+          description: evDescription ? evDescription.value.trim() : '',
+          venueId: parseInt(evVenue ? evVenue.value : '1', 10) || 1,
+          organizerId: parseInt(evOrganizer ? evOrganizer.value : '1', 10) || 1
+        };
+
+        try {
+          const res = await window.apiFetch('/api/organizer/events', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showFormFeedback(evResult, `Event created! ID: ${res.eventId}`);
+          if (pfEvent) pfEvent.value = String(res.eventId);
+          if (typeof window.showToast === 'function') {
+            window.showToast('Event created successfully.', 'ok');
+          }
+        } catch (err) {
+          showFormFeedback(evResult, err.message || 'Could not create event.', true);
+        }
       });
     }
 
-    if (cancelPerfBtn) {
-      cancelPerfBtn.addEventListener('click', async () => {
-        clearFeedback();
-        const perfId = parseInt(bookingsPerformanceInput.value, 10);
-        if (Number.isNaN(perfId) || perfId < 1) {
-          errorDisplay.textContent = 'Please enter a valid Performance ID.';
+    if (formPerformance) {
+      formPerformance.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const eventId = parseInt(pfEvent ? pfEvent.value : '', 10);
+        const rawStart = pfStart ? pfStart.value : '';
+
+        if (Number.isNaN(eventId) || eventId < 1 || !rawStart) {
+          showFormFeedback(pfResult, 'Please provide a valid Event ID and future Start Date & Time.', true);
           return;
         }
-        if (!window.confirm(`Are you sure you want to cancel performance #${perfId}? All pending holds will be cancelled and further reservations blocked.`)) {
+
+        const payload = {
+          eventId,
+          startDateTime: new Date(rawStart).toISOString()
+        };
+
+        try {
+          const res = await window.apiFetch('/api/organizer/performances', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          showFormFeedback(pfResult, `Performance scheduled! ID: ${res.performanceId}`);
+          if (ttPerf) ttPerf.value = String(res.performanceId);
+          if (bkPerfId) bkPerfId.value = String(res.performanceId);
+          if (bookingsPerfId) bookingsPerfId.value = String(res.performanceId);
+          if (invPerfId) invPerfId.value = String(res.performanceId);
+          if (typeof window.showToast === 'function') {
+            window.showToast('Performance scheduled.', 'ok');
+          }
+        } catch (err) {
+          showFormFeedback(pfResult, err.message || 'Could not schedule performance.', true);
+        }
+      });
+    }
+
+    if (formTicketType) {
+      formTicketType.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const perfId = parseInt(ttPerf ? ttPerf.value : '', 10);
+        const name = ttName ? ttName.value.trim() : '';
+        const price = parseFloat(ttPrice ? ttPrice.value : '');
+        const capacity = parseInt(ttCapacity ? ttCapacity.value : '', 10);
+
+        if (Number.isNaN(perfId) || perfId < 1 || !name || Number.isNaN(price) || price < 0 || Number.isNaN(capacity) || capacity < 1) {
+          showFormFeedback(ttResult, 'Please fill in all ticket tier fields with valid values.', true);
           return;
         }
 
         try {
-          await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/cancel`, {
-            method: 'PATCH',
-            headers: authHeaders()
+          const res = await window.apiFetch(`/api/organizer/performances/${encodeURIComponent(perfId)}/tickettypes`, {
+            method: 'POST',
+            body: JSON.stringify({ name, price, capacity })
           });
+          showFormFeedback(ttResult, `Ticket type "${name}" created! ID: ${res.ticketTypeId}`);
           if (typeof window.showToast === 'function') {
-            window.showToast(`Performance #${perfId} cancelled`, 'success');
+            window.showToast('Ticket type added.', 'ok');
           }
-          showStatus(`Performance #${perfId} has been successfully cancelled.`);
-          loadPerformanceBookings(perfId);
         } catch (err) {
-          handleError(err);
+          showFormFeedback(ttResult, err.message || 'Could not add ticket type.', true);
         }
       });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const isOrganizer = window.Auth && window.Auth.isLoggedIn() && window.Auth.isOrganizer();
+
+    if (!isOrganizer) {
+      if (dashLayout) dashLayout.hidden = true;
+      if (authGate) authGate.hidden = false;
+      return;
+    }
+
+    if (authGate) authGate.hidden = true;
+    if (dashLayout) dashLayout.hidden = false;
+
+    const user = window.Auth.getUser();
+    if (dashUserName && user && user.name) {
+      dashUserName.textContent = user.name;
+    }
+    if (evOrganizer && user && user.userId) {
+      evOrganizer.value = String(user.userId);
+    }
+
+    loadVenues();
+    resetOverviewStats();
+    initSidebarNav();
+    initCreateForms();
+
+    if (invLoadBtn) {
+      invLoadBtn.addEventListener('click', loadOverviewInventory);
+    }
+
+    if (loadBookingsBtn) {
+      loadBookingsBtn.addEventListener('click', () => {
+        loadBookingsAndInventory(bookingsPerfId, bookingsInvSummary, bookingsTableWrap);
+      });
+    }
+
+    if (bkLoadBtn) {
+      bkLoadBtn.addEventListener('click', () => {
+        loadBookingsAndInventory(bkPerfId, bkSummary, bkTableWrap);
+      });
+    }
+
+    if (cancelPerfBtn) {
+      cancelPerfBtn.addEventListener('click', cancelPerformance);
     }
   });
 })();

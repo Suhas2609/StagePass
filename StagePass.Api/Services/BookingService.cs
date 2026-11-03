@@ -26,6 +26,7 @@ public class BookingService
             .Select(booking => new BookingDetailsDto
             {
                 BookingReference         = booking.BookingReference,
+                CustomerIdentifier       = booking.CustomerIdentifier,
                 EventTitle               = booking.ReservationHold.TicketType.Performance.Event.Title,
                 PerformanceStartDateTime = booking.ReservationHold.TicketType.Performance.StartDateTime,
                 VenueName                = booking.ReservationHold.TicketType.Performance.Event.Venue.Name,

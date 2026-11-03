@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create Account — StagePass</title>
+  <link rel="stylesheet" href="css/site.css">
+  <style>
+    body { display: flex; min-height: 100vh; }
+
+    /* Left decorative panel */
+    .auth-panel-left {
+      flex: 1;
+      background: linear-gradient(145deg, #0d0d20 0%, #1a0850 50%, #3a0c8c 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      min-height: 100vh;
+    }
+    .auth-panel-left::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%);
+      top: -100px; right: -100px;
+    }
+    .auth-panel-left::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%);
+      bottom: -80px; left: -80px;
+    }
+    .auth-left-content { position: relative; z-index: 1; }
+    .auth-left-logo { font-size: 1.4rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 64px; display: inline-block; }
+    .auth-left-logo span { color: var(--brand-light); }
+    .auth-left-headline { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.1; color: #fff; margin-bottom: 20px; }
+    .auth-left-sub { font-size: 1rem; color: rgba(255,255,255,0.6); max-width: 320px; }
+    .auth-left-stats { display: flex; gap: 32px; position: relative; z-index: 1; }
+    .auth-stat .num { font-size: 2rem; font-weight: 900; color: #fff; }
+    .auth-stat .lab { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+    /* Right form panel */
+    .auth-panel-right {
+      width: 520px;
+      flex-shrink: 0;
+      background: var(--bg-base);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      border-left: 1px solid var(--line-dim);
+    }
+    .auth-form-wrap { width: 100%; max-width: 380px; }
+    .auth-form-title { font-size: var(--f-3xl); font-weight: 800; letter-spacing: -0.03em; margin-bottom: var(--sp-2); }
+    .auth-form-sub { font-size: var(--f-sm); color: var(--text-mid); margin-bottom: var(--sp-8); }
+    .auth-form-sub a { color: var(--brand-light); }
+    .auth-footer { text-align: center; margin-top: var(--sp-6); font-size: var(--f-sm); color: var(--text-mid); }
+    .auth-footer a { color: var(--brand-light); font-weight: 600; }
+    #register-error { display: none; }
+    #register-error:not(:empty) { display: block; }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .auth-panel-left { display: none; }
+      .auth-panel-right { width: 100%; border-left: none; padding: var(--sp-8) var(--sp-6); min-height: 100vh; align-items: flex-start; padding-top: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left: decorative -->
+  <div class="auth-panel-left">
+    <div class="auth-left-content">
+      <a href="index.html" class="auth-left-logo">Stage<span>Pass</span></a>
+      <h1 class="auth-left-headline">Your front-row seat starts here.</h1>
+      <p class="auth-left-sub">Discover and book tickets to the best live performances in your city.</p>
+    </div>
+    <div class="auth-left-stats">
+      <div class="auth-stat"><div class="num">200+</div><div class="lab">Live events</div></div>
+      <div class="auth-stat"><div class="num">5min</div><div class="lab">Hold your tickets</div></div>
+      <div class="auth-stat"><div class="num">0</div><div class="lab">Booking fees</div></div>
+    </div>
+  </div>
+
+  <!-- Right: form -->
+  <div class="auth-panel-right">
+    <div class="auth-form-wrap">
+      <h1 class="auth-form-title">Create your account</h1>
+      <p class="auth-form-sub">Already have one? <a href="login.html">Sign in</a></p>
+
+      <div id="register-error" class="alert alert-bad" role="alert"></div>
+
+      <form id="register-form" novalidate>
+        <div class="form-field">
+          <label class="form-label" for="name">Full Name</label>
+          <input class="form-input" type="text" id="name"
+                 placeholder="Alex Stage" autocomplete="name" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="email">Email address</label>
+          <input class="form-input" type="email" id="email"
+                 placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password"
+                 placeholder="At least 8 characters" autocomplete="new-password" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="confirm-password">Confirm Password</label>
+          <input class="form-input" type="password" id="confirm-password"
+                 placeholder="Repeat password" autocomplete="new-password" required>
+        </div>
+
+        <div class="form-field" style="margin-top:var(--sp-2)">
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:16px;
+                        border:1px solid var(--line-soft);border-radius:var(--r-md);
+                        background:var(--bg-raised);transition:border-color 0.12s;">
+            <input type="checkbox" id="is-organizer" style="width:18px;height:18px;margin-top:2px;accent-color:var(--brand);">
+            <div>
+              <div style="font-size:var(--f-sm);font-weight:600;color:var(--text-high);">
+                Register as an Event Organizer
+              </div>
+              <div style="font-size:var(--f-xs);color:var(--text-mid);margin-top:4px;">
+                Create and manage events, view bookings, and track inventory.
+              </div>
+              <div id="organizer-hint" style="display:none;font-size:var(--f-xs);color:var(--brand-light);margin-top:6px;">
+                You'll be able to create and manage events from the Organizer Dashboard.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <button type="submit" id="register-btn" class="btn btn-brand btn-full btn-lg" style="margin-top:8px;">
+          Create account
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already registered? <a href="login.html">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    if (window.Auth.isLoggedIn()) {
+      window.location.href = 'index.html';
+    }
+
+    const form = document.getElementById('register-form');
+    const errorEl = document.getElementById('register-error');
+    const btn = document.getElementById('register-btn');
+    const orgCheckbox = document.getElementById('is-organizer');
+    const orgHint = document.getElementById('organizer-hint');
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('organizer') === 'true') {
+      orgCheckbox.checked = true;
+      orgHint.style.display = 'block';
+    }
+
+    orgCheckbox.addEventListener('change', () => {
+      orgHint.style.display = orgCheckbox.checked ? 'block' : 'none';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      const isOrganizer = orgCheckbox.checked;
+
+      if (!name) {
+        errorEl.textContent = 'Please enter your full name.';
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        return;
+      }
+      if (!password || password.length < 8) {
+        errorEl.textContent = 'Password must be at least 8 characters long.';
+        return;
+      }
+      if (password !== confirmPassword) {
+        errorEl.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      try {
+        const data = await window.apiFetch('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, name, isOrganizer }),
+        });
+        window.Auth.setSession(data);
+        if (isOrganizer) {
+          window.location.href = 'dashboard.html';
+        } else {
+          const returnTo = params.get('returnTo') || 'index.html';
+          window.location.href = returnTo;
+        }
+      } catch (err) {
+        if (err.status === 409 || err.errorCode === 'EmailAlreadyRegistered') {
+          errorEl.textContent = 'An account with this email already exists.';
+        } else {
+          errorEl.textContent = err.message || 'Registration failed. Please try again.';
+        }
+        btn.disabled = false;
+        btn.textContent = 'Create account';
+      }
+    });
+  </script>
+</body>
+</html>

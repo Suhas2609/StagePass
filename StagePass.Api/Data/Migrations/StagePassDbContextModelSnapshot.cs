@@ -22,6 +22,79 @@ namespace StagePass.Api.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("StagePass.Api.Entities.AppSession", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SessionId");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("IX_AppSessions_ExpiresAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AppSessions");
+                });
+
+            modelBuilder.Entity("StagePass.Api.Entities.AppUser", b =>
+                {
+                    b.Property<int>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<bool>("IsOrganizer")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("PasswordSalt")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AppUsers_Email");
+
+                    b.ToTable("AppUsers");
+                });
+
             modelBuilder.Entity("StagePass.Api.Entities.Booking", b =>
                 {
                     b.Property<int>("BookingId")
@@ -279,6 +352,17 @@ namespace StagePass.Api.Data.Migrations
                     b.ToTable("Venues");
                 });
 
+            modelBuilder.Entity("StagePass.Api.Entities.AppSession", b =>
+                {
+                    b.HasOne("StagePass.Api.Entities.AppUser", "User")
+                        .WithMany("Sessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("StagePass.Api.Entities.Booking", b =>
                 {
                     b.HasOne("StagePass.Api.Entities.ReservationHold", "ReservationHold")
@@ -340,6 +424,11 @@ namespace StagePass.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Performance");
+                });
+
+            modelBuilder.Entity("StagePass.Api.Entities.AppUser", b =>
+                {
+                    b.Navigation("Sessions");
                 });
 
             modelBuilder.Entity("StagePass.Api.Entities.Event", b =>

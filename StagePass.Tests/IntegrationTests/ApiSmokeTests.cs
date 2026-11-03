@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StagePass.Api.Data;
 using StagePass.Api.DTOs.Bookings;
@@ -54,11 +53,11 @@ public class ApiSmokeTests : IAsyncLifetime
         CustomerIdentifier = customer
     };
 
-    private HttpRequestMessage OrganizerRequest(HttpMethod method, string url, bool withKey, object? body = null)
+    private static HttpRequestMessage OrganizerRequest(HttpMethod method, string url, string? token, object? body = null)
     {
         var request = new HttpRequestMessage(method, url);
-        if (withKey)
-            request.Headers.Add("X-Api-Key", _factory.Services.GetRequiredService<IConfiguration>()["OrganizerApiKey"]);
+        if (token is not null)
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         if (body is not null)
             request.Content = JsonContent.Create(body);
         return request;
@@ -260,30 +259,29 @@ public class ApiSmokeTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Test_OrganizerEndpoint_WithoutApiKey_Returns401()
+    public async Task Test_OrganizerEndpoint_WithoutToken_Returns401()
     {
         var performanceId = await FirstPerformanceIdAsync();
 
-        var list = await _client.SendAsync(OrganizerRequest(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings", withKey: false));
-        var wrongKey = new HttpRequestMessage(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings");
-        wrongKey.Headers.Add("X-Api-Key", "definitely-wrong");
-        var wrong = await _client.SendAsync(wrongKey);
-        var create = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/events", withKey: false,
+        var list = await _client.SendAsync(OrganizerRequest(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings", token: null));
+        var invalidToken = await _client.SendAsync(OrganizerRequest(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings", Guid.NewGuid().ToString()));
+        var create = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/events", token: null,
             new { title = "t", category = "c", venueId = 1, organizerId = 1 }));
-        var cancel = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", withKey: false));
+        var cancel = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", token: null));
 
         Assert.Equal(HttpStatusCode.Unauthorized, list.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, invalidToken.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, create.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, cancel.StatusCode);
     }
 
     [Fact]
-    public async Task Test_OrganizerEndpoint_WithApiKey_Returns200()
+    public async Task Test_OrganizerEndpoint_WithOrganizerToken_Returns200()
     {
         var performanceId = await FirstPerformanceIdAsync();
+        var token = await _factory.LoginAsOrganizerAsync();
 
-        var response = await _client.SendAsync(OrganizerRequest(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings", withKey: true));
+        var response = await _client.SendAsync(OrganizerRequest(HttpMethod.Get, $"/api/organizer/performances/{performanceId}/bookings", token));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -295,6 +293,7 @@ public class ApiSmokeTests : IAsyncLifetime
     public async Task Test_Organizer_CreateEventPerformanceTicketType_ThenCancel()
     {
         int eventId = 0;
+        var token = await _factory.LoginAsOrganizerAsync();
         try
         {
             int venueId, organizerId;
@@ -305,21 +304,21 @@ public class ApiSmokeTests : IAsyncLifetime
                 organizerId = (await db.Organizers.AsNoTracking().FirstAsync()).OrganizerId;
             }
 
-            var ev = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/events", true,
+            var ev = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/events", token,
                 new { title = "Api Test Event", category = "Test", description = "d", venueId, organizerId }));
             Assert.Equal(HttpStatusCode.Created, ev.StatusCode);
             eventId = (await ev.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("eventId").GetInt32();
 
-            var past = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/performances", true,
+            var past = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/performances", token,
                 new { eventId, startDateTime = DateTime.UtcNow.AddDays(-1) }));
             Assert.Equal(HttpStatusCode.BadRequest, past.StatusCode);
 
-            var perf = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/performances", true,
+            var perf = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, "/api/organizer/performances", token,
                 new { eventId, startDateTime = DateTime.UtcNow.AddDays(10) }));
             Assert.Equal(HttpStatusCode.Created, perf.StatusCode);
             var performanceId = (await perf.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("performanceId").GetInt32();
 
-            var tt = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, $"/api/organizer/performances/{performanceId}/tickettypes", true,
+            var tt = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, $"/api/organizer/performances/{performanceId}/tickettypes", token,
                 new { name = "GA", price = 12.5, capacity = 30, available = 5 }));
             Assert.Equal(HttpStatusCode.Created, tt.StatusCode);
             var ticketTypeId = (await tt.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("ticketTypeId").GetInt32();
@@ -331,13 +330,13 @@ public class ApiSmokeTests : IAsyncLifetime
                 Assert.Equal(30, created.Available); // Available comes from Capacity, never from the body
             }
 
-            var duplicate = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, $"/api/organizer/performances/{performanceId}/tickettypes", true,
+            var duplicate = await _client.SendAsync(OrganizerRequest(HttpMethod.Post, $"/api/organizer/performances/{performanceId}/tickettypes", token,
                 new { name = "GA", price = 12.5, capacity = 30 }));
             Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
 
-            var cancel = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", true));
+            var cancel = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", token));
             Assert.Equal(HttpStatusCode.OK, cancel.StatusCode);
-            var cancelAgain = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", true));
+            var cancelAgain = await _client.SendAsync(OrganizerRequest(HttpMethod.Patch, $"/api/organizer/performances/{performanceId}/cancel", token));
             Assert.Equal(HttpStatusCode.Conflict, cancelAgain.StatusCode);
 
             var details = await _client.GetAsync($"/api/performances/{performanceId}");

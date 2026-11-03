@@ -4,20 +4,21 @@ using StagePass.Api.Data;
 using StagePass.Api.DTOs.Organizers;
 using StagePass.Api.Entities;
 using StagePass.Api.Enums;
-using StagePass.Api.Filters;
+using StagePass.Api.Security;
 using StagePass.Api.Services;
 
 namespace StagePass.Api.Controllers;
 
 /// <summary>
-/// Organizer endpoints. Protected only by <see cref="OrganizerApiKeyAttribute"/> - a shared static API key
-/// sent in the X-Api-Key header. This is a DEMONSTRATION mechanism, NOT production authentication:
-/// there is no organizer identity, ownership check, key rotation or audit trail, and any holder of the key
-/// can act on behalf of any organizer.
+/// Organizer endpoints. Require a valid session (Authorization: Bearer token from /api/auth/login) of a user
+/// with IsOrganizer = true (see <see cref="RequireOrganizerAttribute"/>).
+/// MVP limitation: AppUser is linked to the legacy Organizers table by email only, and there is no per-event
+/// ownership check on performances/ticket types/bookings/cancel - any organizer can act on any event's
+/// performances. Events created through this API are always owned by the caller's Organizer record.
 /// </summary>
 [ApiController]
 [Route("api/organizer")]
-[OrganizerApiKey]
+[RequireOrganizer]
 public class OrganizerController : ControllerBase
 {
     private readonly StagePassDbContext _context;
@@ -29,17 +30,35 @@ public class OrganizerController : ControllerBase
         _reservationService = reservationService;
     }
 
+    [HttpGet("venues")]
+    public async Task<IActionResult> GetVenues(CancellationToken ct)
+    {
+        var venues = await _context.Venues
+            .AsNoTracking()
+            .OrderBy(v => v.Name)
+            .Select(v => new { v.VenueId, v.Name, v.City })
+            .ToListAsync(ct);
+        return Ok(venues);
+    }
+
     [HttpPost("events")]
     public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request, CancellationToken ct)
     {
-        if (!await _context.Organizers.AnyAsync(o => o.OrganizerId == request.OrganizerId, ct))
-            return BadRequest(new { error = "OrganizerNotFound" });
+        // request.OrganizerId is ignored: the event is owned by the Organizer record linked (by email) to the
+        // authenticated user, so a caller cannot create events on behalf of another organizer.
+        var user = (AppUser)HttpContext.Items["CurrentUser"]!;
+        var organizer = await _context.Organizers.AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Email == user.Email, ct);
+        // Not Forbid(): no authentication scheme is registered, so Forbid() would throw (500).
+        if (organizer is null)
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "OrganizerRecordNotFound" });
+
         if (!await _context.Venues.AnyAsync(v => v.VenueId == request.VenueId, ct))
             return BadRequest(new { error = "VenueNotFound" });
 
         var newEvent = new Event
         {
-            OrganizerId = request.OrganizerId,
+            OrganizerId = organizer.OrganizerId,
             VenueId = request.VenueId,
             Title = request.Title,
             Category = request.Category,

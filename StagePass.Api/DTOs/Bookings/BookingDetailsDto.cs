@@ -1,8 +1,9 @@
-﻿namespace StagePass.Api.DTOs.Bookings;
+namespace StagePass.Api.DTOs.Bookings;
 
 public class BookingDetailsDto
 {
     public string BookingReference { get; set; } = string.Empty;
+    public string CustomerIdentifier { get; set; } = string.Empty;
     public string EventTitle { get; set; } = string.Empty;
     public DateTime PerformanceStartDateTime { get; set; }
     public string VenueName { get; set; } = string.Empty;

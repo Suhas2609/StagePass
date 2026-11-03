@@ -69,7 +69,7 @@ public class DemoAndSecurityTests
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
-    [InlineData(501)]
+    [InlineData(10001)]
     public async Task DemoSetupScenario_InvalidTicketCounts_InDevelopment_Returns400AndCreatesNoEntities(int invalidTickets)
     {
         await _factory.ResetDatabaseAsync();
@@ -373,35 +373,118 @@ public class DemoAndSecurityTests
         }
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("REPLACE_FOR_DEMO")]
-    public async Task OrganizerApiKey_WhenUnconfiguredOrPlaceholder_FailsClosedEvenWithMatchingHeader(string configuredKey)
+    [Fact]
+    public async Task OrganizerEndpoints_WithoutAuthorizationHeader_Return401AuthRequired()
     {
         await _factory.ResetDatabaseAsync();
+        using var client = _factory.CreateClient();
 
-        await using var unconfiguredFactory = _factory.WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Testing");
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:DefaultConnection"] = TestWebApplicationFactory.ResolveTestConnectionString(),
-                    ["OrganizerApiKey"] = configuredKey,
-                    ["RateLimiting:BookingEnabled"] = "false"
-                });
-            });
-        });
+        var resp = await client.GetAsync("/api/organizer/performances/1/bookings");
 
-        using var client = unconfiguredFactory.CreateClient();
-        AssertIsolatedTestDatabase(unconfiguredFactory.Services);
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("AuthRequired", body.GetProperty("error").GetString());
+    }
+
+    [Theory]
+    [InlineData("Bearer 00000000-0000-0000-0000-000000000001")] // well-formed but unknown session
+    [InlineData("Bearer not-a-guid")]
+    [InlineData("Bearer ")]
+    [InlineData("Basic YWRtaW46cGFzcw==")]
+    [InlineData("stagepass-demo-2026")]                           // legacy X-Api-Key style secret is not accepted
+    public async Task OrganizerEndpoints_WithInvalidAuthorization_Return401(string authorizationHeader)
+    {
+        await _factory.ResetDatabaseAsync();
+        using var client = _factory.CreateClient();
 
         using var req = new HttpRequestMessage(HttpMethod.Get, "/api/organizer/performances/1/bookings");
-        req.Headers.Add("X-Api-Key", configuredKey);
+        req.Headers.TryAddWithoutValidation("Authorization", authorizationHeader);
 
         var resp = await client.SendAsync(req);
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task OrganizerEndpoints_LegacyApiKeyHeader_IsIgnored_Returns401()
+    {
+        await _factory.ResetDatabaseAsync();
+        using var client = _factory.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/organizer/performances/1/bookings");
+        req.Headers.Add("X-Api-Key", "anything");
+
+        var resp = await client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task OrganizerEndpoints_WithNonOrganizerSession_Return403OrganizerRequired()
+    {
+        await _factory.ResetDatabaseAsync();
+        var (token, _) = await _factory.RegisterUserAsync(isOrganizer: false);
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await client.GetAsync("/api/organizer/performances/1/bookings");
+
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+        var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("OrganizerRequired", body.GetProperty("error").GetString());
+    }
+
+    [Fact]
+    public async Task OrganizerEndpoints_WithExpiredSession_Return401()
+    {
+        await _factory.ResetDatabaseAsync();
+        var token = await _factory.LoginAsOrganizerAsync();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StagePassDbContext>();
+            var sessionId = Guid.Parse(token);
+            await db.AppSessions.Where(s => s.SessionId == sessionId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAt, DateTime.UtcNow.AddMinutes(-1)));
+        }
+
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await client.GetAsync("/api/organizer/performances/1/bookings");
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task OrganizerCreateEvent_IgnoresBodyOrganizerId_UsesAuthenticatedOrganizer()
+    {
+        await _factory.ResetDatabaseAsync();
+        var token = await _factory.LoginAsOrganizerAsync();
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        int venueId, organizerId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StagePassDbContext>();
+            venueId = (await db.Venues.AsNoTracking().FirstAsync()).VenueId;
+            organizerId = (await db.Organizers.AsNoTracking().SingleAsync(o => o.Email == TestWebApplicationFactory.OrganizerEmail)).OrganizerId;
+        }
+
+        var resp = await client.PostAsJsonAsync("/api/organizer/events",
+            new { title = "Ownership Test", category = "Test", venueId, organizerId = 999999 });
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
+        var eventId = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("eventId").GetInt32();
+
+        try
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<StagePassDbContext>();
+            Assert.Equal(organizerId, (await db.Events.AsNoTracking().SingleAsync(e => e.EventId == eventId)).OrganizerId);
+        }
+        finally
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<StagePassDbContext>();
+            await db.Events.Where(e => e.EventId == eventId).ExecuteDeleteAsync();
+        }
     }
 }

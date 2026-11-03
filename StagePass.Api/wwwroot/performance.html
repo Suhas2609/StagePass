@@ -3,68 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StagePass — Performance Details</title>
+  <title id="page-title">StagePass — Event Details</title>
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="brand">Stage<span>Pass</span></a>
-      <nav class="site-nav">
-        <a href="index.html">All Events</a>
-        <a href="demo.html">🔬 Live Demo</a>
-        <a href="organizer.html">Organizer</a>
-      </nav>
+  <nav class="site-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">Stage<span>Pass</span></a>
+      <div class="nav-links">
+        <a href="index.html">Discover</a>
+        <a href="demo.html">🔬 Demo</a>
+        <a href="dashboard.html">Organizer</a>
+      </div>
+      <div class="nav-auth-zone nav-auth"></div>
+      <button class="nav-hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </header>
-  <main class="container" style="padding-top: var(--space-xl);">
-    <nav class="step-bar" aria-label="Booking progress">
-      <div class="step active" id="step-1">Browse</div>
-      <div class="step" id="step-2">Reserve</div>
-      <div class="step" id="step-3">Confirm</div>
-    </nav>
-    <div id="error-display" class="alert alert-error" role="alert"></div>
-    <div id="performance-detail"></div>
-    <div id="ticket-types" class="ticket-grid"></div>
-    <form id="reservation-form" class="form-panel" novalidate hidden>
-      <h2>Reserve Tickets</h2>
-      <div class="form-group">
-        <label for="ticket-type-select">Ticket Type</label>
-        <select id="ticket-type-select"></select>
+    <div class="nav-mobile-menu">
+      <a href="index.html">Discover</a>
+      <a href="demo.html">🔬 Demo</a>
+      <a href="dashboard.html">Organizer</a>
+    </div>
+  </nav>
+
+  <!-- Hero: populated by JS -->
+  <section class="perf-hero" id="perf-hero">
+    <div class="perf-hero-bg" id="perf-hero-bg"></div>
+    <div class="perf-hero-content">
+      <div class="container">
+        <span class="perf-hero-cat" id="perf-cat"></span>
+        <h1 class="perf-hero-title" id="perf-title">Loading…</h1>
+        <div class="perf-hero-meta" id="perf-meta"></div>
       </div>
-      <div class="form-group">
-        <label for="quantity-input">Quantity (1–10)</label>
-        <input type="number" id="quantity-input" min="1" max="10" value="1">
-        <span id="qty-error" class="field-error"></span>
-      </div>
-      <div class="form-group">
-        <label for="customer-email">Customer Email</label>
-        <input type="email" id="customer-email" placeholder="you@example.com" autocomplete="email">
-        <span id="email-error" class="field-error"></span>
-      </div>
-      <button type="submit" id="reserve-btn" class="btn btn-primary btn-lg btn-full">Reserve Tickets</button>
-    </form>
-    <section id="hold-status" class="hold-box" hidden>
-      <h2 id="hold-until-heading">Hold expires at —</h2>
-      <p id="hold-summary"></p>
-      <div class="countdown-wrapper">
-        <div class="countdown-ring-wrap">
-          <svg viewBox="0 0 120 120" width="120" height="120">
-            <circle class="countdown-ring-bg" cx="60" cy="60" r="54"/>
-            <circle class="countdown-ring-fill" id="ring-fill" cx="60" cy="60" r="54"/>
-          </svg>
-          <div class="countdown-label" id="countdown-label">05:00</div>
+    </div>
+  </section>
+
+  <!-- Body: two-column -->
+  <div class="perf-body" id="perf-body">
+    <!-- Left: details -->
+    <div class="perf-details" id="perf-details">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Right: booking panel -->
+    <aside class="booking-panel">
+      <!-- Step indicator -->
+      <div class="step-indicator">
+        <div class="step-item active" id="step-1">
+          <div class="step-num">1</div>
+          <div class="step-label">Choose</div>
         </div>
-        <p class="countdown-caption">Minutes remaining to confirm</p>
+        <div class="step-item" id="step-2">
+          <div class="step-num">2</div>
+          <div class="step-label">Reserve</div>
+        </div>
+        <div class="step-item" id="step-3">
+          <div class="step-num">3</div>
+          <div class="step-label">Confirm</div>
+        </div>
       </div>
-      <div class="hold-actions">
-        <button id="confirm-booking-btn" class="btn btn-primary btn-lg">✓ Confirm Booking</button>
-        <button id="retry-hold-btn" class="btn btn-secondary">↻ Verify Hold</button>
+
+      <h3>Reserve Tickets</h3>
+
+      <!-- Ticket selection phase -->
+      <div id="phase-select">
+        <div id="error-display" class="alert alert-bad"></div>
+        <div class="tier-list" id="tier-list"></div>
+
+        <div class="qty-stepper">
+          <label for="qty-display">Quantity</label>
+          <div class="qty-controls">
+            <button type="button" class="qty-btn" id="qty-dec">−</button>
+            <span class="qty-value" id="qty-display">1</span>
+            <button type="button" class="qty-btn" id="qty-inc">+</button>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="customer-email">Your Email</label>
+          <input class="form-input" type="email" id="customer-email"
+                 placeholder="you@example.com" autocomplete="email">
+          <span class="field-error" id="email-error"></span>
+        </div>
+
+        <div id="price-summary" style="display:flex;justify-content:space-between;
+             align-items:center;padding:16px;background:var(--bg-raised);
+             border-radius:var(--r-md);margin-bottom:20px;">
+          <span style="font-size:var(--f-sm);color:var(--text-mid);">Total</span>
+          <span style="font-size:var(--f-2xl);font-weight:900;" id="total-price">—</span>
+        </div>
+
+        <button type="button" id="reserve-btn" class="btn btn-brand btn-full btn-lg">Hold Tickets for 5 min</button>
+        <p style="font-size:var(--f-xs);color:var(--text-ghost);text-align:center;margin-top:12px;">
+          No charge until you confirm
+        </p>
       </div>
-    </section>
-  </main>
-  <script src="js/toast.js"></script>
+
+      <!-- Hold active phase -->
+      <div id="phase-hold" class="hold-active hidden">
+        <h4>Your tickets are held!</h4>
+        <p id="hold-summary-text">1 × Standard</p>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 100 100" width="100" height="100">
+            <circle class="ring-bg" cx="50" cy="50" r="45"/>
+            <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="45"/>
+          </svg>
+          <div class="ring-label" id="ring-label">05:00</div>
+        </div>
+        <p style="font-size:var(--f-xs);color:var(--text-low);margin-top:-12px;margin-bottom:20px;">
+          Time remaining to confirm
+        </p>
+        <div class="hold-actions">
+          <button type="button" id="confirm-btn" class="btn btn-brand btn-full btn-lg">✓ Confirm & Book</button>
+          <button type="button" id="retry-btn" class="btn btn-outline btn-full">↻ Verify My Hold</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Static Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="logo">Stage<span>Pass</span></div>
+          <p>The place to discover independent live performances near you.</p>
+        </div>
+        <div class="footer-col">
+          <h3>Discover</h3>
+          <ul>
+            <li><a href="index.html">All Events</a></li>
+            <li><a href="index.html?cat=music">Music</a></li>
+            <li><a href="index.html?cat=theatre">Theatre</a></li>
+            <li><a href="index.html?cat=comedy">Comedy</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Organizers</h3>
+          <ul>
+            <li><a href="register.html?organizer=true">List Your Event</a></li>
+            <li><a href="dashboard.html">Organizer Dashboard</a></li>
+            <li><a href="login.html">Sign In</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Legal</h3>
+          <ul>
+            <li><a href="#">Terms of Use</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cookie Settings</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 StagePass. Built with SQL Server concurrency guarantees.</p>
+        <a href="demo.html" style="font-size:var(--f-xs);color:var(--text-ghost);">🔬 Concurrency Demo</a>
+      </div>
+    </div>
+  </footer>
+
   <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/performance.js"></script>
 </body>
 </html>

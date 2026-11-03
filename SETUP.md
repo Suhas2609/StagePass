@@ -176,32 +176,25 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=(localdb)\
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=StagePassDb;User Id=your_username;Password=your_password;TrustServerCertificate=True;" --project StagePass.Api
 ```
 
-### Step 3: Configure a Local Organizer API Key
+### Step 3: Organizer Login (No Secret Required)
 
-StagePass uses a demonstration API key to guard `/api/organizer/*` endpoints via `OrganizerApiKeyAttribute`.
+Organizer endpoints use database-backed session authentication (register/login). When the app starts in `Development` (or the test suite runs), the seed creates a demo organizer account:
 
-Generate a random key and configure it in your secrets:
+| Field | Value |
+| :--- | :--- |
+| **Email** | `admin@stagepass.local` |
+| **Password** | `StagePass2026!` |
 
-**In PowerShell (Windows)**:
-```powershell
-$devKey = [guid]::NewGuid().ToString("N")
-dotnet user-secrets set "OrganizerApiKey" $devKey --project StagePass.Api
-Write-Host "Your local OrganizerApiKey is: $devKey"
-```
+> [!WARNING]
+> These are **development/test-only demo credentials** created by `DbInitializer`. Never seed them in a real deployment.
 
-**In Bash (macOS / Linux / WSL)**:
-```bash
-DEV_KEY=$(openssl rand -hex 16)
-dotnet user-secrets set "OrganizerApiKey" "$DEV_KEY" --project StagePass.Api
-echo "Your local OrganizerApiKey is: $DEV_KEY"
-```
+The demo account is linked to the seeded `Organizer` record by **email** (see Section 10). To use another organizer account, it must be registered with `isOrganizer = true` *and* an `Organizers` row with the same email must exist.
 
-> [!TIP]
-> Keep this key handy. You will enter it into `https://localhost:7135/organizer.html` to access the organizer management portal.
+Session lifetime is controlled by `SessionDurationDays` in `appsettings.json` (default `7`).
 
 ### Step 4: Verify User Secrets Are Set
 
-Verify that the keys exist in your User Secrets store without printing sensitive passwords:
+Verify that the connection string exists in your User Secrets store without printing sensitive passwords:
 
 ```bash
 dotnet user-secrets list --project StagePass.Api
@@ -210,7 +203,6 @@ dotnet user-secrets list --project StagePass.Api
 Expected output:
 ```text
 ConnectionStrings:DefaultConnection = Server=...;Database=StagePassDb;...
-OrganizerApiKey = ...
 ```
 
 ---
@@ -285,9 +277,9 @@ Open your web browser and navigate to:
    - Watch the real-time countdown timer and click **Confirm Booking**.
 3. **Booking Voucher**: [`https://localhost:7135/booking.html`](https://localhost:7135/booking.html)
    - Displays the confirmed booking receipt with a copyable reference (`SP-XXXXXXXX`).
-4. **Organizer Portal**: [`https://localhost:7135/organizer.html`](https://localhost:7135/organizer.html)
-   - Enter your configured `OrganizerApiKey` and click **Connect**.
-   - Create new events, performances, and ticket tiers; view confirmed bookings with real-time inventory progress bars; or cancel performances.
+4. **Organizer Dashboard**: [`https://localhost:7135/dashboard.html`](https://localhost:7135/dashboard.html)
+   - Sign in at [`https://localhost:7135/login.html`](https://localhost:7135/login.html) using `admin@stagepass.local` / `StagePass2026!`.
+   - Create new events (with the populated venue selector), schedule performances, and add ticket tiers; view confirmed bookings with real-time inventory progress bars; or cancel performances.
 5. **Live Concurrency Demo**: [`https://localhost:7135/demo.html`](https://localhost:7135/demo.html)
    - *Development only*: Fire concurrent reservation requests against a test scenario to witness atomic oversell prevention in real-time.
 
@@ -302,7 +294,7 @@ Expected output: A JSON array returning the 3 seeded performances.
 
 ## 9. Run Automated Tests
 
-StagePass includes a comprehensive test suite (56 tests) in `StagePass.Tests/` verifying unit input validation, seed idempotency, reservation lifecycle, idempotency race conditions, live 500-request SQL Server concurrency, API smoke tests, and security controls.
+StagePass includes a comprehensive test suite (88 tests) in `StagePass.Tests/` verifying unit input validation, seed idempotency, reservation lifecycle, idempotency race conditions, live 500-request SQL Server concurrency, API smoke tests, authentication/session handling, confirmation emails, and security controls.
 
 ### Test Database Isolation (`StagePassTestDb`)
 - Integration tests execute against an **isolated database** named `StagePassTestDb`.
@@ -330,7 +322,7 @@ dotnet test
 ### Running the Tests
 
 ```bash
-# 1. Run the entire test suite (all 56 tests)
+# 1. Run the entire test suite (all 88 tests)
 dotnet test --logger "console;verbosity=minimal"
 
 # 2. Run only non-concurrency tests (Unit, Lifecycle, Smoke, Security)
@@ -345,22 +337,34 @@ dotnet test --filter "FullyQualifiedName~ReservationInputTests"
 
 ### Expected Test Result
 ```text
-Passed!  - Failed: 0, Passed: 56, Skipped: 0, Total: 56
+Passed!  - Failed: 0, Passed: 86, Skipped: 0, Total: 86
 ```
 
 ---
 
-## 10. Organizer API Key and Development Demo
+## 10. Authentication and Development Demo
 
-### How Organizer Authentication Works
-- Organizer endpoints (`/api/organizer/*`) are protected by `OrganizerApiKeyAttribute`.
-- Requests must include the HTTP header:
-  `X-Api-Key: <your-configured-key>`
-- Key comparison uses constant-time hashing (`CryptographicOperations.FixedTimeEquals` on SHA-256 digests) to eliminate timing attacks.
-- If `OrganizerApiKey` is not configured, is empty/whitespace, or equals `"REPLACE_FOR_DEMO"`, the attribute **fails closed** (`401 Unauthorized`).
+### How Authentication Works
+- `POST /api/auth/register`, `POST /api/auth/login` return `{ token, userId, name, email, isOrganizer, expiresAt }`. The `token` is an opaque GUID stored in the `AppSessions` table (no JWT).
+- Send it on later requests as `Authorization: Bearer <token>`. `SessionAuthMiddleware` resolves it to the user; unknown/expired tokens are simply treated as anonymous.
+- `GET /api/auth/me` and `POST /api/auth/logout` require a valid session (`401 AuthRequired` otherwise). Logout deletes that one session.
+- `/api/organizer/*` requires `RequireOrganizer`: `401 AuthRequired` without a valid session, `403 OrganizerRequired` for non-organizer users.
+- Passwords are hashed with PBKDF2-SHA256 (100,000 iterations, 32-byte random salt) using built-in `System.Security.Cryptography`.
+
+**Demo organizer login (development/test seed):** `admin@stagepass.local` / `StagePass2026!`
+
+```powershell
+# PowerShell: log in and call an organizer endpoint
+$login = Invoke-RestMethod -Method Post -Uri https://localhost:7135/api/auth/login -ContentType application/json `
+  -Body (@{ email = "admin@stagepass.local"; password = "StagePass2026!" } | ConvertTo-Json)
+Invoke-RestMethod -Uri https://localhost:7135/api/organizer/performances/1/bookings -Headers @{ Authorization = "Bearer $($login.token)" }
+```
+
+### AppUser ↔ Organizer Link (MVP Limitation)
+The data model still has a separate `Organizers` table. An `AppUser` is linked to an `Organizer` **by matching email**. Creating an event uses the caller's `Organizer` record (the `organizerId` in the request body is ignored); if a user is flagged `IsOrganizer` but has no `Organizer` row with the same email, `POST /api/organizer/events` returns `403 OrganizerRecordNotFound`. The seed gives the single seeded organizer the email `admin@stagepass.local` (databases seeded earlier are updated in place on next start).
 
 > [!IMPORTANT]
-> **Demo-Only Limitation**: This shared-key mechanism is intended solely for local panel demonstrations and grading. It does not provide per-user identity, multi-tenant isolation, key rotation, or audit trails. Production deployment would replace this with OAuth2/OIDC (JWT Bearer tokens) and claims-based authorization (`Event.OrganizerId == User.GetOrganizerId()`).
+> **MVP Limitations**: (1) `isOrganizer` is accepted on public registration, gated only by the email link above; (2) there is no per-event ownership check on performances, ticket types, bookings, or cancellation, so any organizer can manage any performance; (3) no login rate limiting, password reset, email verification, or expired-session cleanup. A production system would use a single user model, server-assigned roles, and ownership checks (`Event.OrganizerId == currentOrganizer`).
 
 ### Concurrency Demo (`demo.html`) & Rate Limiting
 - The concurrency demonstration page (`demo.html` / `demo.js`) calls `/api/demo/setup-scenario` and `/api/demo/snapshot/{id}`.
@@ -393,10 +397,10 @@ Passed!  - Failed: 0, Passed: 56, Skipped: 0, Total: 56
 - **Cause**: Windows Authentication permissions or SQL credentials invalid.
 - **Fix**: If using SQL Authentication (Docker / sa), verify the password. If using Windows Authentication on a local instance, ensure your current Windows user has `sysadmin` rights on the SQL instance.
 
-### 4. `401 Unauthorized` on Organizer Portal
-- **Symptom**: Connecting in `organizer.html` displays `Invalid API key. Please reconnect.`
-- **Cause**: `OrganizerApiKey` has not been set in User Secrets or does not match what was entered into the web form.
-- **Fix**: Set a key with `dotnet user-secrets set "OrganizerApiKey" "my-secret-key" --project StagePass.Api`, restart `StagePass.Api`, and enter `my-secret-key` in `organizer.html`.
+### 4. `401 Unauthorized` on Organizer Dashboard
+- **Symptom**: `/api/organizer/*` returns `401 {"error":"AuthRequired"}` or `403 {"error":"OrganizerRequired"}`.
+- **Cause**: Missing/expired/invalid `Authorization: Bearer <token>` header, or the logged-in user is not an organizer.
+- **Fix**: Log in via `/login.html` or `POST /api/auth/login` (demo: `admin@stagepass.local` / `StagePass2026!`) and send the returned `token` as a Bearer token. If login fails with `InvalidCredentials` on an older database, restart the app in `Development` so the seed creates the demo account (or run `dotnet tool run dotnet-ef database update --project StagePass.Api` first to create the `AppUsers`/`AppSessions` tables).
 
 ### 5. `404 Not Found` on `/api/demo/*`
 - **Symptom**: Visiting `demo.html` displays `Demo setup failed: Not Found. Is the server running in Development mode?`.
@@ -421,12 +425,61 @@ Follow this quick checklist to confirm your environment is fully operational:
 
 - [ ] **1. Prerequisites**: `dotnet --version` returns `10.0.x`, `git --version` returns `2.x`, and SQL Server service is running.
 - [ ] **2. Clone & Tools**: Cloned repo, ran `dotnet tool restore`, and `dotnet build` succeeded with `0 Warning(s), 0 Error(s)`.
-- [ ] **3. User Secrets**: Initialized secrets and set `ConnectionStrings:DefaultConnection` and `OrganizerApiKey`.
+- [ ] **3. User Secrets**: Initialized secrets and set `ConnectionStrings:DefaultConnection`.
 - [ ] **4. Database**: Ran `dotnet tool run dotnet-ef database update --project StagePass.Api` (or let the app auto-migrate on first run).
 - [ ] **5. Run Web App**: Ran `dotnet run --project StagePass.Api`.
 - [ ] **6. Browser Verification**:
   - [ ] Opened `https://localhost:7135/` and observed seeded events.
   - [ ] Opened `https://localhost:7135/performance.html?id=1` and tested a ticket hold.
-  - [ ] Opened `https://localhost:7135/organizer.html` and connected using your `OrganizerApiKey`.
+  - [ ] Logged in via `POST /api/auth/login` as `admin@stagepass.local` and called an organizer endpoint with the Bearer token.
   - [ ] Opened `https://localhost:7135/demo.html` and verified the concurrency demo.
-- [ ] **7. Run Tests**: Ran `dotnet test` and confirmed all **56 tests passed**.
+- [ ] **7. Run Tests**: Ran `dotnet test` and confirmed all **88 tests passed**.
+
+---
+
+## 13. Email Confirmation Setup (Optional)
+
+Booking confirmation emails are disabled by default (`Email:Enabled = false`). To enable them:
+
+### Option A: Gmail SMTP (recommended for local development)
+
+1. Enable 2-Step Verification on your Google Account:
+   https://myaccount.google.com/security
+
+2. Create an App Password:
+   https://myaccount.google.com/apppasswords
+   - Select "Mail" and "StagePass Server" (or "Windows Computer")
+   - Copy the 16-character password (e.g. `abcd efgh ijkl mnop`)
+
+3. Add credentials via User Secrets:
+   ```bash
+   dotnet user-secrets set "Email:From"     "yourname@gmail.com" --project StagePass.Api
+   dotnet user-secrets set "Email:Password" "abcdefghijklmnop"   --project StagePass.Api
+   dotnet user-secrets set "Email:Enabled"  "true"               --project StagePass.Api
+   ```
+
+4. Run the application and complete a booking:
+   - Use a real email address as the Customer Email when reserving
+   - Confirm the booking
+   - A confirmation email will arrive within 30 seconds
+
+### Testing Email
+
+Email sending is tested by the booking confirmation flow.
+Automated integration tests run with `Email:Enabled = false` so no actual emails are sent during automated testing.
+
+To manually test email delivery:
+1. Configure credentials (steps 1–3 above).
+2. Run the app: `dotnet run --project StagePass.Api`
+3. Open `performance.html?id=1`, reserve tickets with your real email, and confirm.
+4. Check your inbox for the StagePass confirmation email (arrives within 30–60 seconds).
+5. If SMTP fails (e.g. invalid credentials or blocked port), the server logs the error, but the booking itself completes successfully with an `SP-XXXXXXXX` reference.
+
+### Option B: Gmail API with OAuth2 (Google Cloud Console)
+
+Use only if SMTP port 587 is blocked in your network environment.
+- Create a project in Google Cloud Console.
+- Enable the Gmail API.
+- Create an OAuth 2.0 Client ID.
+- *Note*: StagePass implements Option A (SMTP) first; Option B can be configured if SMTP traffic is blocked.
+

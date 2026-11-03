@@ -1,5 +1,42 @@
 @baseUrl = https://localhost:7135
-@apiKey = REPLACE_FOR_DEMO
+@token = 00000000-0000-0000-0000-000000000000
+
+### 0a. Auth: Register a new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@stagepass.local",
+  "password": "Passw0rd!123",
+  "name": "Alex Stage",
+  "isOrganizer": false
+}
+
+###
+
+### 0b. Auth: Log in (Demo Organizer: admin@stagepass.local / StagePass2026!)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@stagepass.local",
+  "password": "StagePass2026!"
+}
+
+###
+
+### 0c. Auth: Current user profile (requires Bearer token)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+
+### 0d. Auth: Log out current session
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{token}}
+
+###
 
 ### 1. List upcoming performances (paged; optional ?category=Music&date=2026-12-31)
 GET {{baseUrl}}/api/performances?page=1&pageSize=5
@@ -49,10 +86,10 @@ Accept: application/json
 
 ###
 
-### 7. Organizer: create an event (requires X-Api-Key; 401 without it)
+### 7. Organizer: create an event (requires Bearer token of user with isOrganizer=true)
 POST {{baseUrl}}/api/organizer/events
 Content-Type: application/json
-X-Api-Key: {{apiKey}}
+Authorization: Bearer {{token}}
 
 {
   "title": "Demo Event",
@@ -67,7 +104,7 @@ X-Api-Key: {{apiKey}}
 ### 8. Organizer: create a performance for an event (start must be in the future)
 POST {{baseUrl}}/api/organizer/performances
 Content-Type: application/json
-X-Api-Key: {{apiKey}}
+Authorization: Bearer {{token}}
 
 {
   "eventId": 1,
@@ -79,7 +116,7 @@ X-Api-Key: {{apiKey}}
 ### 9. Organizer: add a ticket type to a performance (Available is set to Capacity by the server)
 POST {{baseUrl}}/api/organizer/performances/1/tickettypes
 Content-Type: application/json
-X-Api-Key: {{apiKey}}
+Authorization: Bearer {{token}}
 
 {
   "name": "Balcony",
@@ -91,12 +128,13 @@ X-Api-Key: {{apiKey}}
 
 ### 10. Organizer: confirmed bookings and per-ticket-type summary
 GET {{baseUrl}}/api/organizer/performances/1/bookings
-X-Api-Key: {{apiKey}}
+Authorization: Bearer {{token}}
+Accept: application/json
 
 ###
 
 ### 11. Organizer: cancel a performance (200; 409 if it is already not Upcoming)
 PATCH {{baseUrl}}/api/organizer/performances/1/cancel
-X-Api-Key: {{apiKey}}
+Authorization: Bearer {{token}}
 
 ###

@@ -3,26 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StagePass — Booking Confirmed</title>
+  <title>Booking Confirmed — StagePass</title>
   <link rel="stylesheet" href="css/site.css">
+  <style>
+    .confirm-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px var(--sp-6) var(--sp-12);
+    }
+    .confirm-card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-surface);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--r-2xl);
+      overflow: hidden;
+    }
+    .confirm-top {
+      padding: var(--sp-10) var(--sp-8);
+      background: linear-gradient(135deg, #0a0a18 0%, #1a0850 50%, #2a0c6a 100%);
+      text-align: center;
+      position: relative;
+    }
+    .confirm-top::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: var(--bg-surface);
+      border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+    }
+    .confirm-check {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(16,185,129,0.15);
+      border: 2px solid var(--ok);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto var(--sp-4);
+      font-size: 1.8rem;
+      color: var(--ok);
+    }
+    .confirm-top h1 { font-size: var(--f-2xl); font-weight: 900; letter-spacing: -0.03em; }
+    .confirm-top p { color: rgba(255,255,255,0.6); font-size: var(--f-sm); margin-top: var(--sp-2); position: relative; z-index: 1; margin-bottom: var(--sp-4); }
+    .confirm-body { padding: var(--sp-6) var(--sp-8) var(--sp-8); }
+    .ref-display {
+      background: var(--bg-raised);
+      border: 1px solid var(--line-soft);
+      border-radius: var(--r-lg);
+      padding: var(--sp-5) var(--sp-6);
+      text-align: center;
+      margin-bottom: var(--sp-6);
+      cursor: pointer;
+      transition: border-color var(--t-fast);
+    }
+    .ref-display:hover { border-color: var(--brand); }
+    .ref-label { font-size: var(--f-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-low); font-weight: 700; margin-bottom: var(--sp-2); }
+    .ref-code { font-family: 'Courier New', monospace; font-size: clamp(1.5rem, 6vw, var(--f-4xl)); font-weight: 900; color: var(--brand-light); letter-spacing: 0.04em; word-break: break-all; }
+    .ref-hint { font-size: var(--f-xs); color: var(--text-ghost); margin-top: var(--sp-2); }
+    .detail-rows { margin-bottom: var(--sp-6); }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: var(--sp-4) 0; border-bottom: 1px solid var(--line-dim); font-size: var(--f-sm); }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row .lbl { color: var(--text-mid); }
+    .detail-row .val { font-weight: 600; color: var(--text-high); text-align: right; max-width: 260px; }
+    .detail-row .val.price { font-size: var(--f-xl); font-weight: 900; color: var(--text-max); }
+    .confirm-actions { display: flex; flex-direction: column; gap: var(--sp-3); }
+    .venue-note {
+      background: rgba(124,58,237,0.1);
+      border: 1px solid var(--brand-subtle);
+      border-radius: var(--r-md);
+      padding: var(--sp-4);
+      font-size: var(--f-xs);
+      color: var(--brand-light);
+      text-align: center;
+      margin-bottom: var(--sp-5);
+    }
+    #booking-container { width: 100%; max-width: 520px; }
+    @media (max-width: 480px) {
+      .confirm-wrap { padding: 80px var(--sp-4) var(--sp-8); }
+      .confirm-top { padding: var(--sp-8) var(--sp-5); }
+      .confirm-body { padding: var(--sp-5); }
+      .ref-display { padding: var(--sp-4); }
+    }
+  </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="brand">Stage<span>Pass</span></a>
-      <nav class="site-nav">
-        <a href="index.html">All Events</a>
-        <a href="demo.html">🔬 Live Demo</a>
-        <a href="organizer.html">Organizer</a>
-      </nav>
+  <nav class="site-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">Stage<span>Pass</span></a>
+      <div class="nav-links">
+        <a href="index.html">Discover</a>
+        <a href="demo.html">🔬 Demo</a>
+        <a href="dashboard.html">Organizer</a>
+      </div>
+      <div class="nav-auth-zone nav-auth"></div>
+      <button class="nav-hamburger" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-  </header>
-  <main class="container" style="padding-top: var(--space-xl);">
-    <div id="error-display" class="alert alert-error" role="alert"></div>
-    <div id="booking-detail"></div>
-  </main>
-  <script src="js/toast.js"></script>
+    <div class="nav-mobile-menu">
+      <a href="index.html">Discover</a>
+      <a href="demo.html">🔬 Demo</a>
+      <a href="dashboard.html">Organizer</a>
+    </div>
+  </nav>
+
+  <div class="confirm-wrap">
+    <div id="booking-container">
+      <!-- Populated by booking.js -->
+    </div>
+  </div>
+
   <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/booking.js"></script>
 </body>
 </html>

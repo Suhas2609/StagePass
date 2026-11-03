@@ -2,73 +2,163 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>StagePass — Discover Live Performances</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StagePass — Discover Live Events</title>
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="brand">Stage<span>Pass</span></a>
-      <nav class="site-nav">
-        <a href="demo.html">🔬 Live Demo</a>
-        <a href="organizer.html">Organizer Portal</a>
-      </nav>
+  <!-- Shared Navigation -->
+  <nav class="site-nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">Stage<span>Pass</span></a>
+      <div class="nav-links">
+        <a href="index.html" class="active">Discover</a>
+        <a href="demo.html">🔬 Demo</a>
+        <a href="dashboard.html">Organizer</a>
+      </div>
+      <div class="nav-auth nav-auth-zone">
+        <!-- Rendered by nav.js based on auth state -->
+      </div>
+      <button class="nav-hamburger" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
-  </header>
+    <div class="nav-mobile-menu">
+      <a href="index.html">Discover</a>
+      <a href="demo.html">🔬 Demo</a>
+      <a href="dashboard.html">Organizer</a>
+    </div>
+  </nav>
 
-  <main class="container">
-    <section class="page-hero">
-      <h1>Upcoming Performances</h1>
-      <p>Discover and book tickets to live theatre, music, comedy, and more.</p>
+  <main>
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+      <div class="hero-bg" id="hero-bg"></div>
+      <div class="hero-content container">
+        <div class="search-bar-wrap" style="margin-bottom:var(--sp-8);">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="search" 
+                 placeholder="Search events, venues, artists…" autocomplete="off">
+        </div>
+        <p class="hero-eyebrow" id="hero-eyebrow">Featured Tonight</p>
+        <h1 class="hero-title" id="hero-title">Loading…</h1>
+        <div class="hero-meta" id="hero-meta"></div>
+        <div class="hero-actions" id="hero-actions"></div>
+      </div>
+      <div class="hero-indicators" id="hero-indicators"></div>
     </section>
 
-    <!-- FILTERS -->
-    <section class="filters" aria-label="Search and filter performances">
-      <div class="filter-group">
-        <label for="search">Search</label>
-        <input type="text" id="search" placeholder="Search events, venues…" autocomplete="off">
+    <!-- Sticky Category Bar -->
+    <div class="category-bar">
+      <div class="category-scroll" id="category-scroll">
+        <button class="cat-pill active" data-cat="">All Events</button>
+        <button class="cat-pill" data-cat="music">🎵 Music</button>
+        <button class="cat-pill" data-cat="theatre">🎭 Theatre</button>
+        <button class="cat-pill" data-cat="comedy">😂 Comedy</button>
+        <button class="cat-pill" data-cat="dance">💃 Dance</button>
       </div>
-      <div class="filter-group">
-        <label for="category">Category</label>
-        <select id="category">
-          <option value="">All Categories</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="date">Date</label>
-        <input type="date" id="date">
-      </div>
-      <div class="filter-group" style="flex: 0; min-width: auto;">
-        <label style="visibility:hidden">Search</label>
-        <button id="search-btn" class="btn btn-primary">Search</button>
-      </div>
-    </section>
-
-    <!-- ALERTS -->
-    <div id="error-display" class="alert alert-error" role="alert"></div>
-
-    <!-- GRID -->
-    <section id="events-grid" class="events-grid" aria-live="polite" aria-label="Performance listings">
-      <!-- Cards injected by events.js -->
-    </section>
-
-    <!-- EMPTY STATE -->
-    <div id="empty-state" hidden style="text-align:center; padding: 60px 0;">
-      <p style="font-size:3rem; margin-bottom:16px;">🎭</p>
-      <p style="color:var(--text-secondary);">No performances found for your search. Try adjusting the filters.</p>
     </div>
 
-    <!-- PAGINATION -->
-    <section class="pagination" aria-label="Pagination">
-      <button id="prev-btn" class="btn btn-secondary" disabled>← Previous</button>
-      <span id="page-label" class="page-label">Page 1</span>
-      <button id="next-btn" class="btn btn-secondary">Next →</button>
+    <!-- Carousel Sections -->
+    <div id="section-carousels">
+      <section class="section">
+        <div class="carousel-section" id="section-this-week">
+          <div class="container carousel-header">
+            <h2>This Week</h2>
+            <div style="display:flex;align-items:center;gap:12px">
+              <a href="#" id="view-all-this-week">View all</a>
+              <div class="carousel-nav">
+                <button class="carousel-btn" data-dir="-1" data-target="track-this-week" aria-label="Previous">&#8592;</button>
+                <button class="carousel-btn" data-dir="1"  data-target="track-this-week" aria-label="Next">&#8594;</button>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-track-wrap">
+            <div class="carousel-track" id="track-this-week"></div>
+          </div>
+        </div>
+
+        <div class="carousel-section" id="section-trending">
+          <div class="container carousel-header">
+            <h2>Trending Near You</h2>
+            <div style="display:flex;align-items:center;gap:12px">
+              <a href="#" id="view-all-trending">View all</a>
+              <div class="carousel-nav">
+                <button class="carousel-btn" data-dir="-1" data-target="track-trending" aria-label="Previous">&#8592;</button>
+                <button class="carousel-btn" data-dir="1"  data-target="track-trending" aria-label="Next">&#8594;</button>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-track-wrap">
+            <div class="carousel-track" id="track-trending"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Grid section for Search / Category filter results -->
+    <section class="section" id="section-all-grid" style="display:none">
+      <div class="container">
+        <h2 id="grid-title" style="font-size:var(--f-2xl);font-weight:800;letter-spacing:-0.03em;margin-bottom:var(--sp-8);">
+          Search Results
+        </h2>
+        <div id="events-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;"></div>
+        <div id="empty-state" class="panel text-center" style="display:none;margin-top:var(--sp-8);">
+          <p style="font-size:var(--f-lg);font-weight:700;color:var(--text-high);margin-bottom:var(--sp-2);">No events found</p>
+          <p style="color:var(--text-mid);">Try adjusting your search terms or category filter.</p>
+        </div>
+      </div>
     </section>
   </main>
 
-  <script src="js/toast.js"></script>
+  <!-- Static Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="logo">Stage<span>Pass</span></div>
+          <p>The place to discover independent live performances near you.</p>
+        </div>
+        <div class="footer-col">
+          <h3>Discover</h3>
+          <ul>
+            <li><a href="index.html">All Events</a></li>
+            <li><a href="index.html?cat=music">Music</a></li>
+            <li><a href="index.html?cat=theatre">Theatre</a></li>
+            <li><a href="index.html?cat=comedy">Comedy</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Organizers</h3>
+          <ul>
+            <li><a href="register.html?organizer=true">List Your Event</a></li>
+            <li><a href="dashboard.html">Organizer Dashboard</a></li>
+            <li><a href="login.html">Sign In</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Legal</h3>
+          <ul>
+            <li><a href="#">Terms of Use</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cookie Settings</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 StagePass. Built with SQL Server concurrency guarantees.</p>
+        <a href="demo.html" style="font-size:var(--f-xs);color:var(--text-ghost);">🔬 Concurrency Demo</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts in order -->
   <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/events.js"></script>
 </body>
 </html>

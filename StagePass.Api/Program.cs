@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using StagePass.Api.BackgroundServices;
 using StagePass.Api.Controllers;
 using StagePass.Api.Data;
+using StagePass.Api.Security;
 using StagePass.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,7 @@ builder.Services.AddDbContext<StagePassDbContext>(options =>
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // 4. Background worker
 builder.Services.AddSingleton<HoldExpiryWorker>();
@@ -89,6 +91,7 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseMiddleware<SessionAuthMiddleware>();
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();

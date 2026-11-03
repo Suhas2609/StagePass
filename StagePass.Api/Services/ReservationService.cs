@@ -8,6 +8,8 @@ namespace StagePass.Api.Services;
 public class ReservationService
 {
     private readonly StagePassDbContext _context;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<ReservationService> _logger;
 
     private sealed class ReleasedHoldRow
     {
@@ -16,9 +18,14 @@ public class ReservationService
         public int Quantity { get; set; }
     }
 
-    public ReservationService(StagePassDbContext context)
+    public ReservationService(
+        StagePassDbContext context,
+        IEmailService emailService,
+        ILogger<ReservationService> logger)
     {
         _context = context;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public Task<ReservationHold?> GetHoldStatusAsync(int holdId, CancellationToken ct = default)
@@ -77,6 +84,54 @@ public class ReservationService
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
+
+            // Send confirmation email (failure is logged, never thrown)
+            try
+            {
+                // Load the details needed for the email template
+                var emailDetails = await _context.Bookings
+                    .AsNoTracking()
+                    .Include(b => b.ReservationHold)
+                        .ThenInclude(h => h.TicketType)
+                            .ThenInclude(tt => tt.Performance)
+                                .ThenInclude(p => p.Event)
+                                    .ThenInclude(e => e.Venue)
+                    .Where(b => b.BookingId == booking.BookingId)
+                    .Select(b => new
+                    {
+                        To            = b.CustomerIdentifier,
+                        EventTitle    = b.ReservationHold.TicketType.Performance.Event.Title,
+                        PerformanceDt = b.ReservationHold.TicketType.Performance.StartDateTime,
+                        VenueName     = b.ReservationHold.TicketType.Performance.Event.Venue.Name,
+                        TierName      = b.ReservationHold.TicketType.Name,
+                        Qty           = b.ReservationHold.Quantity,
+                        Price         = b.ReservationHold.TicketType.Price,
+                    })
+                    .FirstOrDefaultAsync(ct);
+
+                if (emailDetails is not null && emailDetails.To.Contains('@'))
+                {
+                    await _emailService.SendBookingConfirmationAsync(new BookingConfirmationEmail(
+                        ToAddress:           emailDetails.To,
+                        BookingReference:    booking.BookingReference,
+                        EventTitle:          emailDetails.EventTitle,
+                        PerformanceDateTime: emailDetails.PerformanceDt
+                                                 .ToString("dddd d MMMM yyyy 'at' HH:mm"),
+                        VenueName:           emailDetails.VenueName,
+                        TicketTypeName:      emailDetails.TierName,
+                        Quantity:            emailDetails.Qty,
+                        TotalPrice:          emailDetails.Qty * emailDetails.Price
+                    ), ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Absorb: booking is confirmed regardless of email status
+                _logger.LogError(ex,
+                    "Unexpected error preparing email for booking {Ref}.",
+                    booking.BookingReference);
+            }
+
             return ServiceResult<Booking>.Ok(booking);
         }
         catch

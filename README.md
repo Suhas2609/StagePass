@@ -1,135 +1,150 @@
 # StagePass
 
-## 1. What StagePass Is
+StagePass is a live event discovery and ticket booking platform built with C# 13, ASP.NET Core Web API (.NET 10), Entity Framework Core, Microsoft SQL Server, and a zero-dependency vanilla HTML/CSS/JavaScript frontend. Its defining engineering feature is an atomic conditional SQL `UPDATE` inside an explicit database transaction that prevents ticket overselling under high concurrent load without external locks or queues. The platform includes PBKDF2-SHA256 database-backed session authentication for customers and event organizers, an in-process background worker that expires stale 5-minute reservation holds and restores inventory in batch, and a client-driven idempotency mechanism safe against network retries and concurrent race conditions.
 
-StagePass is a live-event ticket booking MVP built with C#, ASP.NET Core Web API (`net10.0`), Entity Framework Core, SQL Server, and a zero-dependency vanilla HTML/CSS/JavaScript frontend. It implements the complete reservation hold, booking confirmation, background hold expiry, and organizer management lifecycle under high concurrency.
+## What it demonstrates
 
-## 2. The Engineering Problem It Demonstrates
+- Atomic SQL Server inventory allocation with zero overselling under concurrent load
+- PBKDF2-SHA256 session-based authentication with no JWT dependency
+- Background reservation expiry using `OUTPUT INTO` with correct inventory aggregation
+- Transactional booking confirmation emails via Gmail SMTP with complete failure isolation
+- 88 automated tests including a 500-concurrent-request load test against real SQL Server
 
-Flash-sale ticketing systems fail when inventory is checked in application memory (`SELECT Available` → C# `if (available >= quantity)` → `UPDATE Available`), because concurrent threads read the same stale count and oversell capacity. StagePass solves this by delegating inventory allocation to a single atomic, conditional SQL `UPDATE` inside a database transaction (`WHERE TicketTypeId = @id AND Available >= @qty`), relying on SQL Server's row-level exclusive (`U`/`X`) lock serialization and database `CHECK` constraints (`Available >= 0 AND Available <= Capacity`) to guarantee zero overselling even when 500 concurrent requests compete for 100 tickets.
+## Prerequisites
 
-## 3. Prerequisites
+- .NET 10 SDK (`dotnet --version` should show `10.x`)
+- SQL Server (Developer, Express, or LocalDB) running on `localhost`
+- VS Code with C# Dev Kit extension (or Visual Studio 2022+)
 
-- **.NET SDK**: .NET 10 SDK (`10.0.x`)
-- **Database**: SQL Server (Developer/Evaluation/Express edition on `localhost` or SQL Server LocalDB)
-- **IDE / Editor**: Visual Studio Code with the C# Dev Kit extension (or Visual Studio 2022+)
+## Setup
 
-## 4. Setup
-
-### a. Clone the Repository
+### 1. Clone and restore tools
 
 ```bash
-git clone <repository-url>
+git clone <url>
 cd StagePass
 dotnet tool restore
 ```
 
-### b. Initialize User Secrets for the Development Connection String
+### 2. Configure the development database
 
-Credentials and development connection strings are never committed to source control. Configure the `DefaultConnection` secret for `StagePass.Api`:
+Use .NET User Secrets (credentials never go in source files):
 
 ```bash
 dotnet user-secrets init --project StagePass.Api
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=StagePassDb;Trusted_Connection=True;TrustServerCertificate=True;" --project StagePass.Api
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Server=localhost;Database=StagePassDb;Trusted_Connection=True;TrustServerCertificate=True;" \
+  --project StagePass.Api
 ```
 
-*(If using SQL Server LocalDB instead of a default `localhost` instance, use `Server=(localdb)\\MSSQLLocalDB;Database=StagePassDb;Trusted_Connection=True;TrustServerCertificate=True;`.)*
+*(If using SQL Server LocalDB, replace `Server=localhost` with `Server=(localdb)\MSSQLLocalDB`.)*
 
-### c. Apply the EF Core Migration
+### 3. Apply migrations and seed data
 
 ```bash
-dotnet tool run dotnet-ef database update --project StagePass.Api
+dotnet ef database update --project StagePass.Api
 ```
 
-### d. Run the Application
+The application seeds development data automatically on first start in the `Development` environment. This creates venues, events, performances, ticket types, and a demo organizer account.
+
+### 4. Run the application
 
 ```bash
 dotnet run --project StagePass.Api
 ```
 
-Navigate to the local URL printed in the console (e.g. `https://localhost:7142/` or `http://localhost:5189/`) to use the customer booking UI, or `/organizer.html` for the organizer dashboard (default demo key in `appsettings.json`: `REPLACE_FOR_DEMO`).
+Open `https://localhost:7135/` or `http://localhost:5047/` (or the port shown in the terminal output).
 
-## 5. Seeding
+## Demo accounts
 
-When `StagePass.Api` starts in the `Development` environment with a valid non-system database configured in `ConnectionStrings:DefaultConnection`, `Program.cs` automatically applies any pending EF Core migrations and invokes `DbInitializer.SeedAsync`. Seeding is idempotent (`if (await context.Venues.AnyAsync()) return;`) and populates:
-- **1 Organizer**: Midnight Sun Productions
-- **2 Venues**: Aurora Concert Hall (Brightmoor), Harbor Lights Theatre (Port Elyse)
-- **2 Events**: *Symphony Under the Stars* (Music), *The Lighthouse Keeper* (Theatre)
-- **3 Upcoming Performances** across those events
-- **6 Ticket Types** (Standard and Premium tiers for each performance)
+| Role | Email | Password |
+|---|---|---|
+| Organizer | `admin@stagepass.local` | `StagePass2026!` |
+| Customer | Register at `/register.html` | Any password ≥ 8 characters |
 
-## 6. Running Tests
+## Running tests
 
-The test project (`StagePass.Tests`) uses a separate database (`StagePassTestDb`) so running tests never modifies or wipes development data in `StagePassDb`.
-
-### a. Non-Concurrency / Standard Test Suite
-
-Runs input validation unit tests, seed verification, reservation lifecycle HTTP integration tests, idempotency tests, and API smoke tests:
+The test suite runs against an isolated SQL Server database named `StagePassTestDb` so development data in `StagePassDb` is never modified. Configure a custom test connection string via the `STAGEPASS_TEST_CONNECTIONSTRING` environment variable or User Secret if needed:
 
 ```bash
-dotnet test --filter "Category!=RequiresSqlServer"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Server=localhost;Database=StagePassTestDb;Trusted_Connection=True;TrustServerCertificate=True;" \
+  --project StagePass.Tests
 ```
 
-To run only the pure in-memory input validation unit tests (no database connection required):
+Apply migrations to the test database:
 
 ```bash
-dotnet test --filter "FullyQualifiedName~ReservationInputTests"
+dotnet ef database update --project StagePass.Api \
+  --connection "Server=localhost;Database=StagePassTestDb;Trusted_Connection=True;TrustServerCertificate=True;"
 ```
 
-### b. Integration Tests (Test Database Configuration)
+Run all tests:
 
-By default, `appsettings.Testing.json` points to `Server=localhost;Database=StagePassTestDb;Trusted_Connection=True;TrustServerCertificate=True;`. You can override the test database connection string via the `STAGEPAS_TEST_CONNECTIONSTRING` environment variable:
-
-```powershell
-$env:STAGEPAS_TEST_CONNECTIONSTRING="Server=localhost;Database=StagePassTestDb;Trusted_Connection=True;TrustServerCertificate=True;"
+```bash
 dotnet test
 ```
 
-### c. High-Concurrency Verification Suite
-
-Runs the 500-concurrent-request oversell test (`ConcurrentReservations_FiveHundredRequests_OneHundredTickets`) and confirm/cancel vs. expiry race tests against SQL Server:
+Run only the high-concurrency tests:
 
 ```bash
 dotnet test --filter "Category=RequiresSqlServer"
 ```
 
-## 7. Key Design Decisions
+Expected: `88 passed, 0 failed, 0 skipped`.
 
-### a. Atomic Conditional `UPDATE` (Oversell Prevention)
-Inventory allocation executes a single parameterized SQL statement inside an explicit transaction:
-```sql
-UPDATE TicketTypes
-SET Available = Available - @quantity
-WHERE TicketTypeId = @ticketTypeId
-  AND Available >= @quantity
-  AND PerformanceId IN (
-      SELECT PerformanceId FROM Performances WHERE Status = 'Upcoming'
-  )
-```
-SQL Server acquires an exclusive row lock on the target `TicketTypes` row when evaluating the `WHERE` predicate and decrementing `Available`. If `rowsAffected == 0`, the transaction rolls back immediately and returns `409 Conflict` (`InsufficientInventory` or `PerformanceCancelled`).
+## Application pages
 
-### b. Inventory Invariant Definition
-At every committed point in time, for every `TicketType` row:
-$$\text{Available} = \text{Capacity} - \sum \left(\text{Quantity} \;\middle|\; \text{ReservationHold.Status} \in \{\text{'Pending'}, \text{'Confirmed'}\}\right)$$
+| URL | Purpose |
+|---|---|
+| `/` (`/index.html`) | Event discovery — hero banner, horizontal carousels, search, and category filters |
+| `/performance.html?id=N` | Performance detail, tier selection, 5-minute hold countdown, and session recovery |
+| `/booking.html?ref=SP-XXXXXXXX` | Booking confirmation receipt with copyable reference and print layout |
+| `/login.html` | Customer and organizer sign-in |
+| `/register.html` | Customer and organizer account registration |
+| `/dashboard.html` | Organizer portal — event/performance/tier creation, venue selector, inventory bars, and bookings |
+| `/demo.html` | Live concurrency demonstration and database invariant verifier (Development only) |
 
-### c. Idempotency Mechanism
-Every `POST /api/reservations` request includes a client-generated `IdempotencyKey` (`Guid`, non-empty).
-1. **Pre-check**: A read-only lookup checks if a `ReservationHold` with `IdempotencyKey` already exists. If found with matching `TicketTypeId` and `Quantity`, the existing hold is returned (`200 OK`); if parameters differ, `409 IdempotencyKeyReused` is returned.
-2. **Unique Index & Constraint Fallback**: The database enforces a unique index `IX_ReservationHolds_IdempotencyKey`. If 50 concurrent requests with the same key pass the pre-check simultaneously, only one `INSERT` succeeds; the remaining 49 catch SQL Server error `2601`/`2627` (`DbUpdateException`), roll back their inventory decrement, re-query the winning hold, and return `200 OK`.
+## API overview
 
-### d. Expiry Worker Three-Step Transaction
-`HoldExpiryWorker` periodically reclaims inventory from unconfirmed holds whose `ExpiresAt <= GETUTCDATE()` inside a single database transaction:
-1. **Atomic State Transition with `OUTPUT`**: Transitions `Status` from `'Pending'` to `'Expired'` and captures the exact rows transitioned using `UPDATE ReservationHolds SET Status = 'Expired' OUTPUT inserted.HoldId, inserted.TicketTypeId, inserted.Quantity INTO @Expired WHERE Status = 'Pending' AND ExpiresAt <= GETUTCDATE()`.
-2. **In-Memory Aggregation**: Groups the captured rows by `TicketTypeId` and sums `Quantity` (sorted by `TicketTypeId` to ensure deterministic lock ordering).
-3. **Inventory Restoration**: Executes `UPDATE TicketTypes SET Available = Available + @total WHERE TicketTypeId = @ticketTypeId` for each group and commits the transaction.
+Standard REST over JSON. Authentication uses opaque GUID session tokens sent via `Authorization: Bearer <token>`:
 
-## 8. What Is Not Production-Ready
+- **Authentication**:
+  - `POST /api/auth/register` — Register a customer or organizer account and create an active session
+  - `POST /api/auth/login` — Authenticate with email and password and receive a session token
+  - `GET /api/auth/me` — Return the authenticated user's profile (`[RequireAuth]`)
+  - `POST /api/auth/logout` — Revoke the current session token (`[RequireAuth]`)
+- **Event Discovery**:
+  - `GET /api/performances` — Paginated list of upcoming performances with `search`, `category`, and `date` filters
+  - `GET /api/performances/{id}` — Performance details and real-time tier availability
+- **Reservations & Bookings**:
+  - `POST /api/reservations` — Atomically allocate inventory and create a 5-minute reservation hold (idempotent via `idempotencyKey`)
+  - `GET /api/reservations/{holdId}` — Poll current status and expiration timestamp of a hold
+  - `POST /api/reservations/{holdId}/confirm` — Confirm a pending hold and issue a `SP-XXXXXXXX` booking reference
+  - `GET /api/bookings/{reference}` — Retrieve confirmed booking details by reference code
+- **Organizer Management** (requires organizer Bearer token via `[RequireOrganizer]`):
+  - `GET /api/organizer/venues` — List available venues ordered by name
+  - `POST /api/organizer/events` — Create a new event owned by the authenticated organizer
+  - `POST /api/organizer/performances` — Schedule an upcoming performance for an event
+  - `POST /api/organizer/performances/{id}/tickettypes` — Add a ticket tier with initial `Available = Capacity`
+  - `GET /api/organizer/performances/{id}/bookings` — Retrieve confirmed bookings and per-tier capacity/sold/available summary
+  - `PATCH /api/organizer/performances/{id}/cancel` — Cancel a performance and release all pending holds back to inventory
+- **Concurrency Demo** (`Development` environment only):
+  - `POST /api/demo/setup-scenario` — Provision an isolated demo performance and ticket tier (`1..10000` tickets)
+  - `GET /api/demo/snapshot/{ticketTypeId}` — Read live `Capacity`, `Available`, `PendingHeld`, `Confirmed`, and verify the invariant
 
-StagePass is an architectural MVP focused on transactional concurrency and inventory correctness. The following aspects are intentionally simplified and **not** ready for public production use:
+## Configuration
 
-- **Organizer API key is a demo mechanism, not production auth**: All `/api/organizer/*` endpoints share a single static key compared in `OrganizerApiKeyAttribute`. There is no organizer identity, per-organizer ownership enforcement, key rotation, or audit logging.
-- **No real payment processing**: Confirming a hold (`POST /api/reservations/{holdId}/confirm`) transitions the hold to `Confirmed` immediately without integrating with a payment gateway (e.g., Stripe/Adyen) or handling asynchronous payment webhooks.
-- **No email or notification delivery**: Customer email addresses (`CustomerIdentifier`) are stored for ownership verification on confirmation, but no confirmation or cancellation emails are sent.
-- **No horizontal scaling tested**: Running multiple instances of `StagePass.Api` simultaneously without a distributed lock or external job scheduler causes `HoldExpiryWorker` instances to compete on the same database tables.
-- **No HTTPS certificate management documented**: Relies on the local ASP.NET Core development certificate (`dotnet dev-certs https`) rather than production TLS termination / automated certificate renewal.
-- **No monitoring or alerting**: Uses standard console logging without OpenTelemetry metrics, distributed tracing, dead-letter queues, or health-check alerting.
+- `StagePass.Api/appsettings.json`: Base configuration; `RateLimiting:BookingEnabled` is `true` (`10` requests per `60` seconds per client IP on `POST /api/reservations`) and `SessionDurationDays` is `7`.
+- `StagePass.Api/appsettings.Development.json`: Sets `RateLimiting:BookingEnabled` to `"false"` so `/demo.html` can fire 300+ concurrent requests from a single browser IP without hitting `429 Too Many Requests`.
+- `StagePass.Api/appsettings.Testing.json`: Sets `RateLimiting:BookingEnabled` to `false` and targets `StagePassTestDb` for automated integration and concurrency tests.
+- **Credentials**: Connection strings are configured via `.NET User Secrets` or environment variables and are never stored in tracked source files.
+
+## What is intentionally not production-ready
+
+- Organizer auth is email/password with session tokens. No OAuth, OIDC, or password reset.
+- No real payment processing. Booking confirmation is a state transition, not a charge.
+- The background hold expiry worker is in-process. Horizontal scaling requires a distributed lock (e.g. SQL Server `sp_getapplock`) or an external job scheduler.
+- Rate limiting uses `RemoteIpAddress`. Behind a reverse proxy, add `ForwardedHeadersMiddleware`.
+- Transactional emails support Gmail SMTP (disabled by default; enabled via User Secrets). Production would use a transactional email gateway (SendGrid, Postmark, AWS SES). No SMS delivery.
+- No monitoring, alerting, or deployment infrastructure.
