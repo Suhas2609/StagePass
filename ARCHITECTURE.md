@@ -284,7 +284,7 @@ On every request, `SessionAuthMiddleware` inspects the `Authorization` header fo
 
 ### Seeded demo organizer and `Organizers` table linkage
 
-`DbInitializer.SeedAsync` seeds a demo organizer user (`admin@stagepass.local` / `StagePass2026!`, `IsOrganizer = true`) and ensures the seeded `Organizers` table record has `Email = "admin@stagepass.local"`. In this MVP, `AppUser` is linked to the domain `Organizers` table by matching email: when `POST /api/organizer/events` is called, `OrganizerController` resolves the caller's `Organizer` record via `_context.Organizers.FirstOrDefaultAsync(o => o.Email == user.Email)` and ignores any `organizerId` supplied in the request body. In a full production system, `AppUser` would replace the legacy `Organizers` table directly.
+`DbInitializer.SeedAsync` seeds a demo organizer user (`admin@stagepass.local` / `StagePass2026!`, `IsOrganizer = true`) and ensures the seeded `Organizers` table record has `Email = "admin@stagepass.local"`. In this MVP, `AppUser` is linked to the domain `Organizers` table by matching email: when a user registers with `IsOrganizer = true` or creates their first event in `OrganizerController`, StagePass links or auto-provisions their corresponding `Organizers` domain record so self-registered organizers can create and manage events immediately.
 
 ---
 
@@ -449,7 +449,7 @@ erDiagram
 | `POST` | `/api/reservations/{holdId:int}/confirm` | Public | `{ customerIdentifier }` | `{ bookingReference: "SP-XXXXXXXX" }` | `200`, `400`, `404`, `409` (`HoldExpired`, `AlreadyConfirmed`, `InvalidOwner`, `PerformanceCancelled`) |
 | `GET` | `/api/bookings/{reference}` | Public | Route: `reference` | `BookingDetailsDto` | `200`, `404` |
 | `GET` | `/api/organizer/venues` | `[RequireOrganizer]` | None | `List<{ venueId, name, city }>` | `200`, `401`, `403` |
-| `POST` | `/api/organizer/events` | `[RequireOrganizer]` | `{ title, category, description, venueId, organizerId }` | `{ eventId }` | `201`, `400 VenueNotFound`, `401`, `403 OrganizerRecordNotFound` |
+| `POST` | `/api/organizer/events` | `[RequireOrganizer]` | `{ title, category, description, venueId, organizerId }` | `{ eventId }` | `201`, `400 VenueNotFound`, `401`, `403` |
 | `POST` | `/api/organizer/performances` | `[RequireOrganizer]` | `{ eventId, startDateTime }` | `{ performanceId }` | `201`, `400 StartDateTimeMustBeInFuture`, `401`, `403`, `404 EventNotFound` |
 | `POST` | `/api/organizer/performances/{id:int}/tickettypes` | `[RequireOrganizer]` | `{ name, price, capacity }` | `{ ticketTypeId }` | `201`, `400`, `401`, `403`, `404`, `409 TicketTypeNameAlreadyExists` |
 | `GET` | `/api/organizer/performances/{id:int}/bookings` | `[RequireOrganizer]` | Route: `id` | `{ bookings: List<OrganizerBookingDto>, summary: List<{ ticketTypeName, capacity, available, sold }> }` | `200`, `401`, `403`, `404` |

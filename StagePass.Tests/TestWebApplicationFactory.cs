@@ -110,8 +110,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             await context.Database.ExecuteSqlRawAsync($"DELETE FROM AppUsers WHERE Email <> '{OrganizerEmail}'");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Bookings");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM ReservationHolds");
+            await context.Database.ExecuteSqlRawAsync($"DELETE FROM TicketTypes WHERE PerformanceId IN (SELECT PerformanceId FROM Performances WHERE EventId IN (SELECT EventId FROM Events WHERE OrganizerId IN (SELECT OrganizerId FROM Organizers WHERE Email <> '{OrganizerEmail}')))");
+            await context.Database.ExecuteSqlRawAsync($"DELETE FROM Performances WHERE EventId IN (SELECT EventId FROM Events WHERE OrganizerId IN (SELECT OrganizerId FROM Organizers WHERE Email <> '{OrganizerEmail}'))");
+            await context.Database.ExecuteSqlRawAsync($"DELETE FROM Events WHERE OrganizerId IN (SELECT OrganizerId FROM Organizers WHERE Email <> '{OrganizerEmail}')");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Events WHERE Category = 'Demo'");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Venues WHERE Name = 'Demo Venue'");
+            await context.Database.ExecuteSqlRawAsync($"DELETE FROM Organizers WHERE Email NOT IN ('{OrganizerEmail}', 'demo@stagepass.local')");
             await context.Database.ExecuteSqlRawAsync("DELETE FROM Organizers WHERE Email = 'demo@stagepass.local'");
             await context.Database.ExecuteSqlRawAsync("UPDATE TicketTypes SET Available = Capacity");
             await context.Database.ExecuteSqlRawAsync("UPDATE Performances SET Status = 'Upcoming'");

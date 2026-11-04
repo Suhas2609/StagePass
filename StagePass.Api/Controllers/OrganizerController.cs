@@ -47,11 +47,20 @@ public class OrganizerController : ControllerBase
         // request.OrganizerId is ignored: the event is owned by the Organizer record linked (by email) to the
         // authenticated user, so a caller cannot create events on behalf of another organizer.
         var user = (AppUser)HttpContext.Items["CurrentUser"]!;
-        var organizer = await _context.Organizers.AsNoTracking()
+        var organizer = await _context.Organizers
             .FirstOrDefaultAsync(o => o.Email == user.Email, ct);
-        // Not Forbid(): no authentication scheme is registered, so Forbid() would throw (500).
+
         if (organizer is null)
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = "OrganizerRecordNotFound" });
+        {
+            // Auto-provision domain Organizer record for authenticated organizers
+            organizer = new Organizer
+            {
+                Name = user.Name,
+                Email = user.Email
+            };
+            _context.Organizers.Add(organizer);
+            await _context.SaveChangesAsync(ct);
+        }
 
         if (!await _context.Venues.AnyAsync(v => v.VenueId == request.VenueId, ct))
             return BadRequest(new { error = "VenueNotFound" });

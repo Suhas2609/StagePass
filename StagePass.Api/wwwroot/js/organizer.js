@@ -334,7 +334,14 @@
             window.showToast('Event created successfully.', 'ok');
           }
         } catch (err) {
-          showFormFeedback(evResult, err.message || 'Could not create event.', true);
+          const errorMap = {
+            'OrganizerRecordNotFound': 'Organizer profile could not be found. Please sign out and sign back in.',
+            'OrganizerRequired': 'You must have an organizer account to create events.',
+            'VenueNotFound': 'The selected venue could not be found.',
+            'AuthRequired': 'Your session has expired. Please log in again.'
+          };
+          const msg = errorMap[err.message] || err.message || 'Could not create event.';
+          showFormFeedback(evResult, msg, true);
         }
       });
     }

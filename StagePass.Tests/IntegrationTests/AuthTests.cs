@@ -242,21 +242,21 @@ public class AuthTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Organizer_Endpoint_WithSelfRegisteredOrganizerWithoutOrganizerRecord_CannotCreateEvents()
+    public async Task Organizer_Endpoint_WithSelfRegisteredOrganizer_CanCreateEvents()
     {
-        // IsOrganizer=true alone is not enough to create events: there must be an Organizer record with the same email.
+        // Self-registered organizer can successfully create events; their domain Organizer record is linked/provisioned.
         var (token, _) = await _factory.RegisterUserAsync(isOrganizer: true);
         using var req = new HttpRequestMessage(HttpMethod.Post, "/api/organizer/events")
         {
-            Content = JsonContent.Create(new { title = "t", category = "c", venueId = 1, organizerId = 1 })
+            Content = JsonContent.Create(new { title = "Festival", category = "Music", venueId = 1, organizerId = 1 })
         };
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var resp = await _client.SendAsync(req);
 
-        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, resp.StatusCode);
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("OrganizerRecordNotFound", body.GetProperty("error").GetString());
+        Assert.True(body.GetProperty("eventId").GetInt32() > 0);
     }
 
     [Fact]

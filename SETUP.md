@@ -360,8 +360,8 @@ $login = Invoke-RestMethod -Method Post -Uri https://localhost:7135/api/auth/log
 Invoke-RestMethod -Uri https://localhost:7135/api/organizer/performances/1/bookings -Headers @{ Authorization = "Bearer $($login.token)" }
 ```
 
-### AppUser ↔ Organizer Link (MVP Limitation)
-The data model still has a separate `Organizers` table. An `AppUser` is linked to an `Organizer` **by matching email**. Creating an event uses the caller's `Organizer` record (the `organizerId` in the request body is ignored); if a user is flagged `IsOrganizer` but has no `Organizer` row with the same email, `POST /api/organizer/events` returns `403 OrganizerRecordNotFound`. The seed gives the single seeded organizer the email `admin@stagepass.local` (databases seeded earlier are updated in place on next start).
+### AppUser ↔ Organizer Link
+The domain model maintains an `Organizers` table for event ownership. An `AppUser` is linked to an `Organizer` **by matching email**. When an organizer registers via `/register.html` (or an authenticated organizer creates their first event), StagePass auto-provisions their corresponding `Organizer` domain record so self-registered organizers can create and manage events immediately. Creating an event binds the event to the caller's `Organizer` record (`organizerId` in the request body is safely overridden by the server).
 
 > [!IMPORTANT]
 > **MVP Limitations**: (1) `isOrganizer` is accepted on public registration, gated only by the email link above; (2) there is no per-event ownership check on performances, ticket types, bookings, or cancellation, so any organizer can manage any performance; (3) no login rate limiting, password reset, email verification, or expired-session cleanup. A production system would use a single user model, server-assigned roles, and ownership checks (`Event.OrganizerId == currentOrganizer`).

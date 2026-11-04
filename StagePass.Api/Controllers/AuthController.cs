@@ -35,6 +35,19 @@ public sealed class AuthController(StagePassDbContext db, IConfiguration config)
         };
         db.AppUsers.Add(user);
 
+        if (user.IsOrganizer)
+        {
+            var existingOrg = await db.Organizers.FirstOrDefaultAsync(o => o.Email == email, ct);
+            if (existingOrg is null)
+            {
+                db.Organizers.Add(new Organizer
+                {
+                    Name = user.Name,
+                    Email = user.Email
+                });
+            }
+        }
+
         try
         {
             await db.SaveChangesAsync(ct);
